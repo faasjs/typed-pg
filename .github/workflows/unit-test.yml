@@ -1,0 +1,42 @@
+name: Unit Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - src/**
+      - .github/workflows/unit-test.yml
+  pull_request:
+    paths:
+      - src/**
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: npm
+          node-version: 22
+      - name: Install
+        run: |
+          npm install
+      - name: Run Tests
+        run: npm run ci
+        env:
+          PG_CONNECTION: postgresql://postgres:postgres@localhost:5432
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOVTOKEN }}

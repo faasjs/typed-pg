@@ -1,0 +1,32 @@
+{
+  "name": "typed-pg-dev",
+  "dockerComposeFile": "docker-compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/root/app",
+  "remoteUser": "root",
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached",
+    "source=node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      },
+      "extensions": [
+        "streetsidesoftware.code-spell-checker",
+        "biomejs.biome"
+      ]
+    },
+    "codespaces": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      },
+      "extensions": [
+        "streetsidesoftware.code-spell-checker",
+        "biomejs.biome"
+      ]
+    }
+  },
+  "waitFor": "onCreateCommand"
+}

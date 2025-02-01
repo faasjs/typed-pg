@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: sleep infinity
+    tty: true
+    volumes:
+      - ..:/root/app:delegated
+      - ~/.zsh_history:/root/.zsh_history:delegated
+    depends_on:
+      - pg
+  pg:
+    image: postgres:alpine
+    environment:
+      POSTGRES_USER: development
+      POSTGRES_DB: development
+      POSTGRES_HOST_AUTH_METHOD: trust

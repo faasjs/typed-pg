@@ -1,0 +1,47 @@
+{
+  "name": "typed-pg",
+  "description": "A type-safe PostgreSQL query builder for TypeScript with a fluent API.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "homepage": "https://github.com/faasjs/typed-pg",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/faasjs/typed-pg.git",
+    "directory": "packages/ant-design"
+  },
+  "bugs": {
+    "url": "https://github.com/faasjs/typed-pg/issues"
+  },
+  "funding": "https://github.com/sponsors/faasjs",
+  "scripts": {
+    "build": "tsup-node src/index.ts --config tsup.config.ts",
+    "test": "vitest --run"
+  },
+  "files": ["dist"],
+  "devDependencies": {
+    "postgres": "*",
+    "tsup": "*",
+    "faasjs": "*",
+    "@faasjs/lint": "*",
+    "vitest": "*",
+    "@types/node": "*"
+  },
+  "peerDependencies": {
+    "postgres": "*"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=11.0.0"
+  }
+}
