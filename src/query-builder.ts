@@ -20,7 +20,9 @@ const QueryOrderDirections = ['ASC', 'DESC'] as const
 
 type QueryOrderDirection = (typeof QueryOrderDirections)[number]
 
-export class QueryBuilder<T extends TableName | string = string> {
+type InferTResult<TName extends TableName | string, ColumnNames extends ColumnName<TName>[] = ColumnName<TName>[]> = ColumnNames extends ['*'] ? TableType<TName> : ColumnNames[number] extends keyof TableType<TName> ? Pick<TableType<TName>, ColumnNames[number]> : Record<string, any>[]
+
+export class QueryBuilder<T extends TableName | string = string, TResult = InferTResult<T>[]> {
   private client: Client
   private table: T
   private selectColumns: ColumnName<T>[] = []
@@ -38,17 +40,17 @@ export class QueryBuilder<T extends TableName | string = string> {
     this.table = table
   }
 
-  select(...columns: ColumnName<T>[]) {
+  select<ColumnNames extends ColumnName<T>[]>(...columns: ColumnNames): QueryBuilder<T, InferTResult<T, ColumnNames>> {
     if (columns?.length > 0) this.selectColumns = columns
 
-    return this
+    return this as any
   }
 
-  where<C extends ColumnName<T>>(column: C, operator: typeof NormalOperators[number], value?: ColumnValue<T, C>): QueryBuilder<T>
-  where<C extends ColumnName<T>>(column: C, operator: typeof ArrayOperators[number], value: ColumnValue<T, C>[]): QueryBuilder<T>
-  where<C extends ColumnName<T>>(column: C, operator: typeof NullOperators[number]): QueryBuilder<T>
-  where<C extends ColumnName<T>>(column: C, operator: typeof JsonOperators[number], value: ColumnValue<T, C>): QueryBuilder<T>
-  where<C extends ColumnName<T>>(column: C, value: ColumnValue<T, C>): QueryBuilder<T>
+  where<C extends ColumnName<T>>(column: C, operator: typeof NormalOperators[number], value?: ColumnValue<T, C>): QueryBuilder<T, TResult>
+  where<C extends ColumnName<T>>(column: C, operator: typeof ArrayOperators[number], value: ColumnValue<T, C>[]): QueryBuilder<T, TResult>
+  where<C extends ColumnName<T>>(column: C, operator: typeof NullOperators[number]): QueryBuilder<T, TResult>
+  where<C extends ColumnName<T>>(column: C, operator: typeof JsonOperators[number], value: ColumnValue<T, C>): QueryBuilder<T, TResult>
+  where<C extends ColumnName<T>>(column: C, value: ColumnValue<T, C>): QueryBuilder<T, TResult>
   where(column: ColumnName<T>, operatorOrValue: Operator | any, value?: any) {
     if (typeof value === 'undefined' && !['IS NULL', 'IS NOT NULL'].includes(operatorOrValue)) {
       this.whereConditions.push({
@@ -158,13 +160,18 @@ export class QueryBuilder<T extends TableName | string = string> {
     }
   }
 
-  async all() {
+  // biome-ignore lint/suspicious/noThenProperty: <explanation>
+  then<TResult1 = TResult, TResult2 = never>(
+    onfulfilled?: ((value: TResult) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): Promise<TResult1 | TResult2> {
     const { sql, params } = this.toSql()
-    return this.client.raw(sql, params)
+
+    return this.client.raw(sql, params).then(onfulfilled as any, onrejected)
   }
 
-  async first() {
-    this.limitValue = 1
+  async first(): Promise<(TResult extends (infer U)[] ? U : TResult) | null> {
+    this.limit(1)
 
     const { sql, params } = this.toSql()
 
@@ -172,7 +179,7 @@ export class QueryBuilder<T extends TableName | string = string> {
   }
 
   async count() {
-    this.selectColumns = ['COUNT(*)' as any]
+    this.select('COUNT(*)' as any)
 
     const { sql, params } = this.toSql()
     const result = await this.client.raw(sql, params)
@@ -189,7 +196,7 @@ export class QueryBuilder<T extends TableName | string = string> {
     return result.map((row: any) => row[column])
   }
 
-  async insert(values: Partial<TableType<T>>, options: { returning?: ColumnName<T>[] | ['*'] } = {}) {
+  async insert<Returning extends (keyof TableType<T>)[] | ['*']>(values: Partial<TableType<T>>, options: { returning?: Returning } = {}): Promise<Returning extends ['*'] ? TableType<T> : Returning[number] extends keyof TableType<T> ? Pick<TableType<T>, Returning[number]> : Record<string, any>[]> {
     const sql = [
       'INSERT INTO',
       escapeIdentifier(this.table),
@@ -201,20 +208,20 @@ export class QueryBuilder<T extends TableName | string = string> {
     ]
 
     if (options.returning?.length)
-      sql.push('RETURNING', options.returning.map(escapeIdentifier).join(','))
+      sql.push('RETURNING', options.returning.map(column => escapeIdentifier(column as string)).join(','))
 
-    return this.client.raw(sql.join(' '), Object.values(values))
+    return this.client.raw(sql.join(' '), Object.values(values)) as any
   }
 
-  async update(values: Partial<TableType<T>>, options: { returning?: ColumnName<T>[] | ['*'] } = {}) {
+  async update<Returning extends (keyof TableType<T>)[] | ['*']>(values: Partial<TableType<T>>, options: { returning?: Returning } = {}): Promise<Returning extends ['*'] ? TableType<T> : Returning[number] extends keyof TableType<T> ? Pick<TableType<T>, Returning[number]> : Record<string, any>[]> {
     const params: any[] = Object.values(values)
 
     const sql = [
       'UPDATE',
       escapeIdentifier(this.table),
       'SET',
-      Object.entries(values)
-        .map(([column]) => `${escapeIdentifier(column)} = ?`)
+      Object.keys(values)
+        .map((column) => `${escapeIdentifier(column)} = ?`)
         .join(','),
     ]
 
@@ -227,9 +234,9 @@ export class QueryBuilder<T extends TableName | string = string> {
     params.push(...whereParams)
 
     if (options.returning?.length)
-      sql.push('RETURNING', options.returning.map(escapeIdentifier).join(','))
+      sql.push('RETURNING', options.returning.map(column => escapeIdentifier(column as string)).join(','))
 
-    return this.client.raw(sql.join(' '), params)
+    return this.client.raw(sql.join(' '), params) as any
   }
 
   async delete() {

@@ -30,7 +30,7 @@ describe('QueryBuilder/query', () => {
 
   describe('select', () => {
     it('selects all columns', async () => {
-      const result = await new QueryBuilder(client, 'query').select().all()
+      const result = await new QueryBuilder(client, 'query')
 
       expect(result).toEqual([
         {
@@ -47,7 +47,6 @@ describe('QueryBuilder/query', () => {
     it('selects specific columns', async () => {
       const result = await new QueryBuilder(client, 'query')
         .select('name')
-        .all()
 
       expect(result).toEqual([{ name: 'Alice' }, { name: 'Bob' }])
     })
@@ -211,6 +210,12 @@ describe('QueryBuilder/query', () => {
       const result = await new QueryBuilder(client, 'query').first()
 
       expect(result).toEqual({ id: 1, name: 'Alice', metadata: { age: 100 } })
+    })
+
+    it('returns the first row with column', async () => {
+      const result = await new QueryBuilder(client, 'query').select('name').first()
+
+      expect(result).toEqual({ name: 'Alice' })
     })
   })
 

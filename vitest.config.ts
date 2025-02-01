@@ -10,7 +10,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/__tests/**', 'dist/**'],
+      exclude: ['src/__tests__/**', 'dist/**'],
       reporter: ['text', 'lcov', 'html'],
     },
     reporters: ['default', ['junit', { outputFile: 'test-report.junit.xml' }]],
