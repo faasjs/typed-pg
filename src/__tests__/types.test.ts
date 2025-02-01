@@ -1,5 +1,5 @@
 import { describe, it, expectTypeOf } from 'vitest'
-import type { ColumnName, ColumnValue, TableName, Tables } from '../types'
+import type { ColumnName, ColumnValue, TableName, Tables, TableType } from '../types'
 
 type User = {
   id: number
@@ -11,31 +11,38 @@ type User = {
 
 declare module '../types' {
   interface Tables {
-    users: User
+    query: User
+    mutation: User
   }
 }
 
 describe('types', () => {
   it('Tables', () => {
     expectTypeOf<Tables>().toEqualTypeOf<{
-      users: User
+      query: User
+      mutation: User
     }>()
   })
 
+  it('TableType', () => {
+    expectTypeOf<TableType<'query'>>().toEqualTypeOf<User>()
+    expectTypeOf<TableType>().toEqualTypeOf<Record<string, any>>()
+  })
+
   it('TableName', () => {
-    expectTypeOf<TableName>().toEqualTypeOf<'users'>()
+    expectTypeOf<TableName>().toEqualTypeOf<'query' | 'mutation'>()
   })
 
   it('ColumnName', () => {
-    expectTypeOf<ColumnName<'users'>>().toEqualTypeOf<'id' | 'name' | 'metadata'>()
+    expectTypeOf<ColumnName<'query'>>().toEqualTypeOf<'id' | 'name' | 'metadata'>()
     expectTypeOf<ColumnName>().toEqualTypeOf<string>()
   })
 
   it('ColumnValue', () => {
-    expectTypeOf<ColumnValue<'users', 'id'>>().toEqualTypeOf<number>()
-    expectTypeOf<ColumnValue<'users', 'name'>>().toEqualTypeOf<string>()
-    expectTypeOf<ColumnValue<'users', 'metadata'>>().toEqualTypeOf<{ age: number }>()
-    expectTypeOf<ColumnValue<'users'>>().toEqualTypeOf<any>()
+    expectTypeOf<ColumnValue<'query', 'id'>>().toEqualTypeOf<number>()
+    expectTypeOf<ColumnValue<'query', 'name'>>().toEqualTypeOf<string>()
+    expectTypeOf<ColumnValue<'query', 'metadata'>>().toEqualTypeOf<{ age: number }>()
+    expectTypeOf<ColumnValue<'query'>>().toEqualTypeOf<any>()
     expectTypeOf<ColumnValue>().toEqualTypeOf<any>()
   })
 })

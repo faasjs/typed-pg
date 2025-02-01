@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { type Client, createClient } from '../client'
 import { createTestingPostgres } from './utils'
+import { QueryBuilder } from '../query-builder'
+import { isAsyncFunction } from 'node:util/types'
 
 describe('client', () => {
   let client: Client
@@ -41,5 +43,13 @@ describe('client', () => {
         { '?column?': 2 },
       ])
     })
+  })
+
+  it('query', () => {
+    expect(client.query('users')).toBeInstanceOf(QueryBuilder)
+  })
+
+  it('quit', async () => {
+    expect(isAsyncFunction(client.quit)).toBeTruthy()
   })
 })

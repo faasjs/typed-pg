@@ -13,8 +13,8 @@ export class Client {
     this.postgres = sql
   }
 
-  async query(table: TableName) {
-    return new QueryBuilder(this, table)
+  query<T extends TableName>(table: T) {
+    return new QueryBuilder<T>(this, table)
   }
 
   async raw<T extends Record<string, any> = any>(

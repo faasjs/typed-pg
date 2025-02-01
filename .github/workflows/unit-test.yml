@@ -39,4 +39,7 @@ jobs:
           PG_CONNECTION: postgresql://postgres:postgres@localhost:5432
       - uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOVTOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,5 +1,5 @@
 import type { Client } from './client'
-import type { ColumnName, ColumnValue, TableName } from './types'
+import type { ColumnName, ColumnValue, TableName, TableType } from './types'
 import { escapeIdentifier } from './escape'
 
 const NormalOperators = ['=', '!=', '<', '<=', '>', '>='] as const
@@ -13,8 +13,12 @@ const Operators = [
   ...NullOperators,
   ...JsonOperators,
 ] as const
+
 type Operator = (typeof Operators)[number]
-export type QueryOrderDirection = 'ASC' | 'DESC'
+
+const QueryOrderDirections = ['ASC', 'DESC'] as const
+
+type QueryOrderDirection = (typeof QueryOrderDirections)[number]
 
 export class QueryBuilder<T extends TableName | string = string> {
   private client: Client
@@ -27,6 +31,7 @@ export class QueryBuilder<T extends TableName | string = string> {
   }[] = []
   private limitValue?: number
   private offsetValue?: number
+  private orderByColumns: ColumnName<T>[] = []
 
   constructor(client: Client, table: T) {
     this.client = client
@@ -77,17 +82,19 @@ export class QueryBuilder<T extends TableName | string = string> {
     return this
   }
 
-  toSql() {
-    const sql = ['SELECT']
+  orderBy<C extends ColumnName<T>>(column: C, direction: QueryOrderDirection = 'ASC') {
+    if (!QueryOrderDirections.includes(direction))
+      throw Error(`Invalid order direction: ${direction}`)
+
+    this.orderByColumns.push(`${column} ${direction}` as any)
+
+    return this
+  }
+
+  private buildWhereSql() {
+    const sql = []
     const params: any[] = []
 
-    // Add columns
-    sql.push(this.selectColumns.map(escapeIdentifier).join(',') || '*')
-
-    // Add table
-    sql.push('FROM', escapeIdentifier(this.table))
-
-    // Add where conditions
     if (this.whereConditions.length > 0) {
       sql.push(
         'WHERE',
@@ -108,6 +115,27 @@ export class QueryBuilder<T extends TableName | string = string> {
       )
     }
 
+    return {
+      sql: sql.join(' '),
+      params,
+    }
+  }
+
+  toSql() {
+    const sql = ['SELECT']
+    const params: any[] = []
+
+    // Add columns
+    sql.push(this.selectColumns.map(escapeIdentifier).join(',') || '*')
+
+    // Add table
+    sql.push('FROM', escapeIdentifier(this.table))
+
+    // Add where conditions
+    const { sql: whereSql, params: whereParams } = this.buildWhereSql()
+    sql.push(whereSql)
+    params.push(...whereParams)
+
     // Add limit and offset
     if (this.limitValue) {
       sql.push('LIMIT ?')
@@ -118,6 +146,11 @@ export class QueryBuilder<T extends TableName | string = string> {
       sql.push('OFFSET ?')
       params.push(this.offsetValue)
     }
+
+    // Add order by
+    if (this.orderByColumns.length > 0)
+      sql.push('ORDER BY', this.orderByColumns.join(','))
+
 
     return {
       sql: sql.join(' '),
@@ -154,5 +187,64 @@ export class QueryBuilder<T extends TableName | string = string> {
     const result = await this.client.raw(sql, params)
 
     return result.map((row: any) => row[column])
+  }
+
+  async insert(values: Partial<TableType<T>>, options: { returning?: ColumnName<T>[] | ['*'] } = {}) {
+    const sql = [
+      'INSERT INTO',
+      escapeIdentifier(this.table),
+      '(',
+      Object.keys(values).map(escapeIdentifier).join(','),
+      ') VALUES (',
+      Object.values(values).map(() => '?').join(','),
+      ')',
+    ]
+
+    if (options.returning?.length)
+      sql.push('RETURNING', options.returning.map(escapeIdentifier).join(','))
+
+    return this.client.raw(sql.join(' '), Object.values(values))
+  }
+
+  async update(values: Partial<TableType<T>>, options: { returning?: ColumnName<T>[] | ['*'] } = {}) {
+    const params: any[] = Object.values(values)
+
+    const sql = [
+      'UPDATE',
+      escapeIdentifier(this.table),
+      'SET',
+      Object.entries(values)
+        .map(([column]) => `${escapeIdentifier(column)} = ?`)
+        .join(','),
+    ]
+
+    // Add where conditions
+    const { sql: whereSql, params: whereParams } = this.buildWhereSql()
+
+    if (!whereSql) throw new Error('Missing where conditions')
+
+    sql.push(whereSql)
+    params.push(...whereParams)
+
+    if (options.returning?.length)
+      sql.push('RETURNING', options.returning.map(escapeIdentifier).join(','))
+
+    return this.client.raw(sql.join(' '), params)
+  }
+
+  async delete() {
+    const sql = [
+      'DELETE FROM',
+      escapeIdentifier(this.table),
+    ]
+
+    // Add where conditions
+    const { sql: whereSql, params: whereParams } = this.buildWhereSql()
+
+    if (!whereSql) throw new Error('Missing where conditions')
+
+    sql.push(whereSql)
+
+    return this.client.raw(sql.join(' '), whereParams)
   }
 }

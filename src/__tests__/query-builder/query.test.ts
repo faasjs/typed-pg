@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { type Client, createClient } from '../client'
-import { QueryBuilder } from '../query-builder'
-import { createTestingPostgres } from './utils'
+import { type Client, createClient } from '../../client'
+import { QueryBuilder } from '../../query-builder'
+import { createTestingPostgres } from '../utils'
 
-describe('QueryBuilder', () => {
+describe('QueryBuilder/query', () => {
   let client: Client
 
   beforeAll(async () => {
     client = createClient(createTestingPostgres())
 
     await client.raw`
-      CREATE TABLE users (
+      CREATE TABLE query (
         id SERIAL PRIMARY KEY,
         name TEXT,
         metadata JSONB
@@ -18,19 +18,19 @@ describe('QueryBuilder', () => {
     `
 
     await client.raw`
-      INSERT INTO users (id, name, metadata) VALUES (1, 'Alice', '{"age":100}'), (2, 'Bob', '{}');
+      INSERT INTO query (id, name, metadata) VALUES (1, 'Alice', '{"age":100}'), (2, 'Bob', '{}');
     `
   })
 
   afterAll(async () => {
-    await client.raw`DROP TABLE users`
+    await client.raw`DROP TABLE query`
 
     await client.quit()
   })
 
   describe('select', () => {
     it('selects all columns', async () => {
-      const result = await new QueryBuilder(client, 'users').select().all()
+      const result = await new QueryBuilder(client, 'query').select().all()
 
       expect(result).toEqual([
         {
@@ -45,7 +45,7 @@ describe('QueryBuilder', () => {
     })
 
     it('selects specific columns', async () => {
-      const result = await new QueryBuilder(client, 'users')
+      const result = await new QueryBuilder(client, 'query')
         .select('name')
         .all()
 
@@ -55,7 +55,7 @@ describe('QueryBuilder', () => {
 
   describe('where', () => {
     it('column and value', async () => {
-      const result = await new QueryBuilder(client, 'users')
+      const result = await new QueryBuilder(client, 'query')
         .where('name', 'Alice')
         .pluck('id')
 
@@ -63,7 +63,7 @@ describe('QueryBuilder', () => {
     })
 
     it('column, operator, and value', async () => {
-      const result = await new QueryBuilder(client, 'users')
+      const result = await new QueryBuilder(client, 'query')
         .where('name', '!=', 'Alice')
         .pluck('id')
 
@@ -72,7 +72,7 @@ describe('QueryBuilder', () => {
 
     describe('operator', () => {
       it('IS NULL', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('name', 'IS NULL')
           .pluck('id')
 
@@ -80,7 +80,7 @@ describe('QueryBuilder', () => {
       })
 
       it('IS NOT NULL', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('name', 'IS NOT NULL')
           .pluck('id')
 
@@ -88,7 +88,7 @@ describe('QueryBuilder', () => {
       })
 
       it('IN', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('name', 'IN', ['Alice'])
           .pluck('id')
 
@@ -96,7 +96,7 @@ describe('QueryBuilder', () => {
       })
 
       it('NOT IN', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('name', 'NOT IN', ['Alice'])
           .pluck('id')
 
@@ -104,7 +104,7 @@ describe('QueryBuilder', () => {
       })
 
       it('>', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('id', '>', 1)
           .pluck('id')
 
@@ -112,7 +112,7 @@ describe('QueryBuilder', () => {
       })
 
       it('>=', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('id', '>=', 1)
           .pluck('id')
 
@@ -120,7 +120,7 @@ describe('QueryBuilder', () => {
       })
 
       it('<', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('id', '<', 2)
           .pluck('id')
 
@@ -128,7 +128,7 @@ describe('QueryBuilder', () => {
       })
 
       it('<=', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('id', '<=', 2)
           .pluck('id')
 
@@ -136,7 +136,7 @@ describe('QueryBuilder', () => {
       })
 
       it('!=', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('name', '!=', 'Alice')
           .pluck('id')
 
@@ -144,7 +144,7 @@ describe('QueryBuilder', () => {
       })
 
       it('@>', async () => {
-        const result = await new QueryBuilder(client, 'users')
+        const result = await new QueryBuilder(client, 'query')
           .where('metadata', '@>', { age: 100 })
           .pluck('id')
 
@@ -153,7 +153,7 @@ describe('QueryBuilder', () => {
 
       it('throws error for invalid operator', async () => {
         await expect(() =>
-          new QueryBuilder(client, 'users')
+          new QueryBuilder(client, 'query')
             .where('name', 'invalid' as any, 'Alice')
             .pluck('id')
         ).toThrowError('Invalid operator: invalid')
@@ -161,7 +161,7 @@ describe('QueryBuilder', () => {
     })
 
     it('multiple conditions', async () => {
-      const result = await new QueryBuilder(client, 'users')
+      const result = await new QueryBuilder(client, 'query')
         .where('name', 'Alice')
         .where('id', '>', 1)
         .pluck('id')
@@ -172,7 +172,7 @@ describe('QueryBuilder', () => {
 
   describe('limit', () => {
     it('limits the number of results', async () => {
-      const result = await new QueryBuilder(client, 'users')
+      const result = await new QueryBuilder(client, 'query')
         .limit(1)
         .pluck('id')
 
@@ -182,7 +182,7 @@ describe('QueryBuilder', () => {
 
   describe('offset', () => {
     it('offsets the results', async () => {
-      const result = await new QueryBuilder(client, 'users')
+      const result = await new QueryBuilder(client, 'query')
         .offset(1)
         .pluck('id')
 
@@ -192,7 +192,7 @@ describe('QueryBuilder', () => {
 
   describe('pluck', () => {
     it('returns a single column', async () => {
-      const result = await new QueryBuilder(client, 'users').pluck('name')
+      const result = await new QueryBuilder(client, 'query').pluck('name')
 
       expect(result).toEqual(['Alice', 'Bob'])
     })
@@ -200,7 +200,7 @@ describe('QueryBuilder', () => {
 
   describe('count', () => {
     it('counts the number of rows', async () => {
-      const result = await new QueryBuilder(client, 'users').count()
+      const result = await new QueryBuilder(client, 'query').count()
 
       expect(result).toEqual(2)
     })
@@ -208,9 +208,35 @@ describe('QueryBuilder', () => {
 
   describe('first', () => {
     it('returns the first row', async () => {
-      const result = await new QueryBuilder(client, 'users').first()
+      const result = await new QueryBuilder(client, 'query').first()
 
       expect(result).toEqual({ id: 1, name: 'Alice', metadata: { age: 100 } })
+    })
+  })
+
+  describe('orderBy', () => {
+    it('default order', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .orderBy('id')
+        .pluck('id')
+
+      expect(result).toEqual([1, 2])
+    })
+
+    it('ascending order', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .orderBy('id', 'ASC')
+        .pluck('id')
+
+      expect(result).toEqual([1, 2])
+    })
+
+    it('descending order', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .orderBy('id', 'DESC')
+        .pluck('id')
+
+      expect(result).toEqual([2, 1])
     })
   })
 })
