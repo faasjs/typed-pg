@@ -1,7 +1,8 @@
 import { describe, it, expectTypeOf } from 'vitest'
 import type { ColumnName, ColumnValue, TableName, Tables, TableType } from '../types'
 
-type User = {
+// biome-ignore lint/suspicious/noExportsInTest: <explanation>
+export type User = {
   id: number
   name: string
   metadata: {

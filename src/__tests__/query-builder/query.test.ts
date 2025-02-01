@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, expectTypeOf } from 'vitest'
 import { type Client, createClient } from '../../client'
 import { QueryBuilder } from '../../query-builder'
 import { createTestingPostgres } from '../utils'
+import type { User } from '../types.test'
 
 describe('QueryBuilder/query', () => {
   let client: Client
@@ -42,13 +43,24 @@ describe('QueryBuilder/query', () => {
         },
         { id: 2, name: 'Bob', metadata: {} },
       ])
+      expectTypeOf(result).toEqualTypeOf<User[]>()
     })
 
     it('selects specific columns', async () => {
-      const result = await new QueryBuilder(client, 'query')
-        .select('name')
+      const result = await new QueryBuilder(client, 'query').select('name')
 
       expect(result).toEqual([{ name: 'Alice' }, { name: 'Bob' }])
+      expectTypeOf(result).toEqualTypeOf<Pick<User, 'name'>>()
+    })
+
+    it('selects multiple columns', async () => {
+      const result = await new QueryBuilder(client, 'query').select('name', 'metadata')
+
+      expect(result).toEqual([
+        { name: 'Alice', metadata: { age: 100 } },
+        { name: 'Bob', metadata: {} },
+      ])
+      expectTypeOf(result).toEqualTypeOf<Pick<User, 'name' | 'metadata'>>()
     })
   })
 
@@ -194,6 +206,7 @@ describe('QueryBuilder/query', () => {
       const result = await new QueryBuilder(client, 'query').pluck('name')
 
       expect(result).toEqual(['Alice', 'Bob'])
+      expectTypeOf(result).toEqualTypeOf<string[]>()
     })
   })
 
@@ -210,12 +223,16 @@ describe('QueryBuilder/query', () => {
       const result = await new QueryBuilder(client, 'query').first()
 
       expect(result).toEqual({ id: 1, name: 'Alice', metadata: { age: 100 } })
+      expectTypeOf(result).toEqualTypeOf<User | null>()
     })
 
     it('returns the first row with column', async () => {
-      const result = await new QueryBuilder(client, 'query').select('name').first()
+      const result = await new QueryBuilder(client, 'query')
+        .select('name')
+        .first()
 
       expect(result).toEqual({ name: 'Alice' })
+      expectTypeOf(result).toEqualTypeOf<Pick<User, 'name'> | null>()
     })
   })
 
