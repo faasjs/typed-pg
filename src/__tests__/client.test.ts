@@ -46,7 +46,7 @@ describe('client', () => {
   })
 
   it('query', () => {
-    expect(client.query('users')).toBeInstanceOf(QueryBuilder)
+    expect(client.query('query')).toBeInstanceOf(QueryBuilder)
   })
 
   it('quit', async () => {
