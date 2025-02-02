@@ -120,7 +120,7 @@ describe('SchemaBuilder', () => {
       })
       table.alterColumn('updated_at', {
         type: 'date',
-        defaultValue: 'NULL',
+        defaultValue: null,
         primary: true,
         unique: true,
         check: 'updated_at > now()',

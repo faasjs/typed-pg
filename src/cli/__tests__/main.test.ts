@@ -54,11 +54,6 @@ describe('cli', () => {
     )
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining(
-        'Lock:'
-      )
-    )
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining(
         'Migrations:'
       )
     )

@@ -281,6 +281,9 @@ export class TableBuilder {
 class ColumnBuilder {
   constructor(private definition: ColumnDefinition) { }
 
+  /**
+   * Set the column to be nullable or not, default is true
+   */
   nullable(isNullable = true) {
     this.definition.nullable = isNullable
     return this
