@@ -1,4 +1,5 @@
 import type { Client } from "../client"
+import { createTemplateStringsArray } from "../utils"
 import { TableBuilder } from "./table-builder"
 
 export class SchemaBuilder {
@@ -30,16 +31,18 @@ export class SchemaBuilder {
 
   toSQL(): string[] {
     const statements: string[] = []
-    for (const builder of this.tables.values()) {
-      statements.push(builder.toSQL())
-    }
+
+    for (const builder of this.tables.values())
+      statements.push(...builder.toSQL())
+
     return statements
   }
 
   async run() {
-    for (const statement of this.toSQL()) {
-      await this.client.raw(statement)
-    }
+    if (this.tables.size === 0) return
+
+    await this.client.postgres.begin(async trx => await trx.call(trx, createTemplateStringsArray(this.toSQL().join("\n"))).simple())
+
     this.tables.clear()
   }
 }

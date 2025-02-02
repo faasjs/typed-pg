@@ -2,4 +2,4 @@
 
 import { main } from './main'
 
-main()
+main().finally(() => process.exit(0))

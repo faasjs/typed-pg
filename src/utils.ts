@@ -34,3 +34,13 @@ export function escapeValue(value: any): string {
 
   throw Error(`Unsupported value type: ${value}`)
 }
+
+export function createTemplateStringsArray(str: string): TemplateStringsArray {
+  const arr = [str]
+
+  Object.defineProperty(arr, "raw", {
+    value: Object.freeze([str])
+  })
+
+  return Object.freeze(arr) as TemplateStringsArray
+}

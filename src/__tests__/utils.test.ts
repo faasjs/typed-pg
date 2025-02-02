@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { escapeIdentifier, escapeValue } from '../escape'
+import { escapeIdentifier, escapeValue } from '../utils'
 
 describe('escapeIdentifier', () => {
   it('escapes double quotes', () => {

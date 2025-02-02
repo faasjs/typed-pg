@@ -1,4 +1,4 @@
-import { escapeIdentifier } from "../escape"
+import { escapeIdentifier } from "../utils"
 
 type ColumnType = 'smallint'
   | 'integer'
@@ -115,8 +115,9 @@ export class TableBuilder {
   }
 
   timestamps() {
-    this.timestamp('created_at').defaultTo('now()')
-    this.timestamp('updated_at').defaultTo('now()')
+    this.timestamptz('created_at').defaultTo('now()')
+    this.timestamptz('updated_at').defaultTo('now()')
+
     return this
   }
 
@@ -189,17 +190,17 @@ export class TableBuilder {
     return this
   }
 
-  toSQL(): string {
-    const sql = []
+  toSQL(): string[] {
+    const sql: string[] = []
     const columnDefs = Array.from(this.columns.entries())
       .map(([name, def]) => this.columnToSQL(name, def))
 
     switch (this.mode) {
       case 'create':
-        sql.push(`CREATE TABLE ${escapeIdentifier(this.tableName)} (`, columnDefs.join(',\n'), ');\n')
+        sql.push(`CREATE TABLE ${escapeIdentifier(this.tableName)} (\n${columnDefs.join(',\n')}\n);\n`)
         break
       case 'alter':
-        sql.push(columnDefs.map(c => `ALTER TABLE ${escapeIdentifier(this.tableName)} ADD COLUMN ${c};\n`))
+        sql.push(...columnDefs.map(c => `ALTER TABLE ${escapeIdentifier(this.tableName)} ADD COLUMN ${c};`))
 
         for (const operation of this.operations) {
           switch (operation.type) {
@@ -217,8 +218,8 @@ export class TableBuilder {
               break
             case 'alterColumn':
               sql.push(
-                Object.entries(operation.changes)
-                  .map(([key, value]) => `ALTER TABLE ${escapeIdentifier(this.tableName)} ${this.alterToSql(operation.name, key as keyof ColumnDefinition, value)};`).join('\n')
+                ...Object.entries(operation.changes)
+                  .map(([key, value]) => `ALTER TABLE ${escapeIdentifier(this.tableName)} ${this.alterToSql(operation.name, key as keyof ColumnDefinition, value)};`)
               )
               break
           }
@@ -231,9 +232,9 @@ export class TableBuilder {
 
     sql.push(indexDefs.join('\n'))
 
-    console.log(sql.join('\n'))
+    // console.log(sql.join('\n'))
 
-    return sql.join('\n')
+    return sql
   }
 
   private columnToSQL(name: string, def: ColumnDefinition): string {
@@ -258,21 +259,21 @@ export class TableBuilder {
   private alterToSql(columnName: string, type: keyof ColumnDefinition, value: any) {
     switch (type) {
       case 'type':
-        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET DATA TYPE ${value}`
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET DATA TYPE ${value};`
       case 'nullable':
-        return `ALTER COLUMN ${escapeIdentifier(columnName)} ${value ? 'DROP' : 'SET'} NOT NULL`
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} ${value ? 'DROP' : 'SET'} NOT NULL;`
       case 'defaultValue':
-        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET DEFAULT ${value}`
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET DEFAULT ${value};`
       case 'primary':
-        return value ? `ADD PRIMARY KEY (${escapeIdentifier(columnName)})` : `DROP CONSTRAINT IF EXISTS ${escapeIdentifier(this.tableName)}_pkey`
+        return value ? `ADD PRIMARY KEY (${escapeIdentifier(columnName)})` : `DROP CONSTRAINT IF EXISTS ${escapeIdentifier(`${this.tableName}_pkey`)};`
       case 'unique':
-        return value ? `ADD UNIQUE (${escapeIdentifier(columnName)})` : `DROP CONSTRAINT IF EXISTS ${escapeIdentifier(`${this.tableName}_${columnName}_unique`)}`
+        return value ? `ADD UNIQUE (${escapeIdentifier(columnName)})` : `DROP CONSTRAINT IF EXISTS ${escapeIdentifier(`${this.tableName}_${columnName}_unique`)};`
       case 'check':
-        return `ADD CHECK (${value})`
+        return `ADD CHECK (${value});`
       case 'references':
-        return `ALTER COLUMN ${escapeIdentifier(columnName)} ADD REFERENCES ${value.table}(${value.column})`
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} ADD REFERENCES ${value.table}(${value.column});`
       case 'collate':
-        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET COLLATE ${value}`
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET COLLATE ${value};`
     }
   }
 }

@@ -45,7 +45,8 @@
   },
   "peerDependencies": {
     "postgres": "*",
-    "tsx": "*"
+    "tsx": "*",
+    "@faasjs/logger": "*"
   },
   "engines": {
     "node": ">=22.0.0",

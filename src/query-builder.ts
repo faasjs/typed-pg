@@ -1,6 +1,6 @@
 import type { Client } from './client'
 import type { ColumnName, ColumnValue, TableName, TableType } from './types'
-import { escapeIdentifier } from './escape'
+import { escapeIdentifier } from './utils'
 
 const NormalOperators = ['=', '!=', '<', '<=', '>', '>='] as const
 const ArrayOperators = ['IN', 'NOT IN'] as const

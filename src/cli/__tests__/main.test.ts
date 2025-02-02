@@ -1,10 +1,66 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { main } from '../main'
+import { DATABASE_URL } from '../../__tests__/utils'
 
 describe('cli', () => {
-  it('DATABASE_URL is required', async () => {
-    delete process.env.DATABASE_URL
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation((...args) => {
+      process.stderr.write(`${args.join(' ')}\n`)
+    })
+    vi.spyOn(console, 'log').mockImplementation((...args) => {
+      process.stdout.write(`${args.join(' ')}\n`)
+    })
+  })
 
-    await expect(async () => main()).rejects.toThrow('DATABASE_URL not set, please run `DATABASE_URL=postgres://<your pg url> typed-pg`')
+  it('should throw error on failed database connection', async () => {
+    process.env.DATABASE_URL = 'postgres://invalid'
+
+    await main()
+
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Error connecting to database, please check your DATABASE_URL'
+      )
+    )
+
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'getaddrinfo ENOTFOUND invalid'
+      )
+    )
+  })
+
+  it('should log success on successful connection', async () => {
+    process.env.DATABASE_URL = DATABASE_URL
+
+    await main()
+
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Connected to database successfully'
+      )
+    )
+  })
+
+  it('status', async () => {
+    process.env.DATABASE_URL = DATABASE_URL
+
+    await main('status')
+
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Status:'
+      )
+    )
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Lock:'
+      )
+    )
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Migrations:'
+      )
+    )
   })
 })
