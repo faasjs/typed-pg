@@ -32,7 +32,15 @@ export function escapeValue(value: any): string {
     return `ARRAY[${value.map(escapeValue).join(',')}]`
   }
 
-  throw Error(`Unsupported value type: ${value}`)
+  if (value instanceof Date) {
+    return `'${value.toISOString()}'`
+  }
+
+  if (typeof value === 'object') {
+    return `'${JSON.stringify(value).replace(/'/g, "''")}'`
+  }
+
+  throw Error(`Unsupported value: ${value}`)
 }
 
 export function createTemplateStringsArray(str: string): TemplateStringsArray {

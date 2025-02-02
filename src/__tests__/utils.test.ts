@@ -62,8 +62,18 @@ describe('escapeValue', () => {
     expect(escapeValue([[1, 2], ['a']])).toBe('ARRAY[ARRAY[1,2],ARRAY[\'a\']]')
   })
 
+  it('handles date values', () => {
+    const date = new Date('2023-01-01T00:00:00.000Z')
+    expect(escapeValue(date)).toBe('\'2023-01-01T00:00:00.000Z\'')
+  })
+
+  it('handles object values', () => {
+    expect(escapeValue({ foo: 'bar' })).toBe('\'{"foo":"bar"}\'')
+    expect(escapeValue({ a: 1, b: true })).toBe('\'{"a":1,"b":true}\'')
+  })
+
   it('throws error for unsupported types', () => {
-    expect(() => escapeValue({})).toThrowError('Unsupported value type: [object Object]')
-    expect(() => escapeValue(undefined)).toThrowError('Unsupported value type: undefined')
+    expect(() => escapeValue(undefined)).toThrowError('Unsupported value: undefined')
+    expect(() => escapeValue(() => 1)).toThrowError('Unsupported value: () => 1')
   })
 })

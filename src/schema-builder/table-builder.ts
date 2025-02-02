@@ -1,4 +1,4 @@
-import { escapeIdentifier } from "../utils"
+import { escapeIdentifier, escapeValue } from "../utils"
 
 type ColumnType = 'smallint'
   | 'integer'
@@ -242,11 +242,11 @@ export class TableBuilder {
       escapeIdentifier(name),
       def.type,
       def.nullable ? 'NULL' : 'NOT NULL',
-      def.defaultValue !== undefined ? `DEFAULT ${def.defaultValue}` : '',
-      def.primary ? 'PRIMARY KEY' : '',
-      def.unique ? 'UNIQUE' : '',
+      def.defaultValue !== undefined ? `DEFAULT ${escapeValue(def.defaultValue)}` : null,
+      def.primary ? 'PRIMARY KEY' : null,
+      def.unique ? 'UNIQUE' : null,
       def.references ?
-        `REFERENCES ${def.references.table}(${def.references.column})` : '',
+        `REFERENCES ${def.references.table}(${def.references.column})` : null,
     ].filter(Boolean)
 
     return parts.join(' ')
@@ -263,7 +263,7 @@ export class TableBuilder {
       case 'nullable':
         return `ALTER COLUMN ${escapeIdentifier(columnName)} ${value ? 'DROP' : 'SET'} NOT NULL;`
       case 'defaultValue':
-        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET DEFAULT ${value};`
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET DEFAULT ${escapeValue(value)};`
       case 'primary':
         return value ? `ADD PRIMARY KEY (${escapeIdentifier(columnName)})` : `DROP CONSTRAINT IF EXISTS ${escapeIdentifier(`${this.tableName}_pkey`)};`
       case 'unique':
