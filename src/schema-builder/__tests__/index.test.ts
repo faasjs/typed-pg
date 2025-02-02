@@ -18,7 +18,7 @@ describe('SchemaBuilder', () => {
     const builder = new SchemaBuilder(client)
 
     builder.createTable('creators', table => {
-      table.string('string')
+      table.string('string').primary().unique()
       table.number('number')
       table.boolean('boolean')
       table.date('date')
@@ -77,6 +77,16 @@ describe('SchemaBuilder', () => {
     )
 
     expect(
+      indices.find(i => i.indexname.includes('creators_pkey'))
+    ).toMatchObject({
+      schemaname: 'public',
+      tablename: 'creators',
+      indexname: 'creators_pkey',
+      tablespace: null,
+      indexdef: 'CREATE UNIQUE INDEX creators_pkey ON public.creators USING btree (string)',
+    })
+
+    expect(
       indices.find(i => i.indexname.includes('idx_creators_string'))
     ).toMatchObject({
       schemaname: 'public',
@@ -108,7 +118,10 @@ describe('SchemaBuilder', () => {
       table.dropColumn('created_at')
       table.alterColumn('updated_at', {
         type: 'date',
-        defaultValue: 'NULL'
+        defaultValue: 'NULL',
+        primary: true,
+        unique: true,
+        check: 'updated_at > now()',
       })
     })
 
@@ -122,11 +135,27 @@ describe('SchemaBuilder', () => {
     for (const column of [
       { column_name: 'new_string', data_type: 'character varying' },
       { column_name: 'number', data_type: 'integer' },
+      { column_name: 'updated_at', data_type: 'date', column_default: null },
     ]) {
       expect(
         columns.find(c => c.column_name === column.column_name)
       ).toMatchObject(column)
     }
+
+    const indices = await client.raw(
+      'SELECT * FROM pg_indexes WHERE tablename = ?',
+      ['alters']
+    )
+
+    expect(
+      indices.find(i => i.indexname.includes('alters_pkey'))
+    ).toMatchObject({
+      schemaname: 'public',
+      tablename: 'alters',
+      indexname: 'alters_pkey',
+      tablespace: null,
+      indexdef: 'CREATE UNIQUE INDEX alters_pkey ON public.alters USING btree (updated_at)',
+    })
 
     await client.raw('DROP TABLE alters')
   })

@@ -56,27 +56,6 @@ type ColumnDefinition = {
   collate?: string
 }
 
-function alterColumnDefinitionToSql(type: keyof ColumnDefinition, value: any) {
-  switch (type) {
-    case 'type':
-      return `SET DATA TYPE ${value}`
-    case 'nullable':
-      return value ? 'DROP NOT NULL' : 'SET NOT NULL'
-    case 'defaultValue':
-      return `SET DEFAULT ${value}`
-    case 'primary':
-      return value ? 'ADD PRIMARY KEY' : 'DROP PRIMARY KEY'
-    case 'unique':
-      return value ? 'ADD UNIQUE' : 'DROP UNIQUE'
-    case 'check':
-      return `ADD CHECK (${value})`
-    case 'references':
-      return `ADD REFERENCES ${value.table}(${value.column})`
-    case 'collate':
-      return `SET COLLATE ${value}`
-  }
-}
-
 type AlterOperation =
   | { type: 'renameColumn'; from: string; to: string }
   | { type: 'dropColumn'; name: string }
@@ -232,14 +211,14 @@ export class TableBuilder {
               break
             case 'dropColumn':
               sql.push(
-                `ALTER TABLE ${this.tableName} ` +
+                `ALTER TABLE ${escapeIdentifier(this.tableName)} ` +
                 `DROP COLUMN "${operation.name}";\n`
               )
               break
             case 'alterColumn':
               sql.push(
                 Object.entries(operation.changes)
-                  .map(([key, value]) => `ALTER TABLE ${this.tableName} ALTER COLUMN "${operation.name}" ${alterColumnDefinitionToSql(key as keyof ColumnDefinition, value)};`).join('\n')
+                  .map(([key, value]) => `ALTER TABLE ${escapeIdentifier(this.tableName)} ${this.alterToSql(operation.name, key as keyof ColumnDefinition, value)};`).join('\n')
               )
               break
           }
@@ -274,6 +253,27 @@ export class TableBuilder {
 
   private indexToSQL(name: string, columns: string[]): string {
     return `CREATE INDEX ${escapeIdentifier(name)} ON ${escapeIdentifier(this.tableName)} (${columns.map(escapeIdentifier).join(', ')});`
+  }
+
+  private alterToSql(columnName: string, type: keyof ColumnDefinition, value: any) {
+    switch (type) {
+      case 'type':
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET DATA TYPE ${value}`
+      case 'nullable':
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} ${value ? 'DROP' : 'SET'} NOT NULL`
+      case 'defaultValue':
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET DEFAULT ${value}`
+      case 'primary':
+        return value ? `ADD PRIMARY KEY (${escapeIdentifier(columnName)})` : `DROP CONSTRAINT IF EXISTS ${escapeIdentifier(this.tableName)}_pkey`
+      case 'unique':
+        return value ? `ADD UNIQUE (${escapeIdentifier(columnName)})` : `DROP CONSTRAINT IF EXISTS ${escapeIdentifier(`${this.tableName}_${columnName}_unique`)}`
+      case 'check':
+        return `ADD CHECK (${value})`
+      case 'references':
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} ADD REFERENCES ${value.table}(${value.column})`
+      case 'collate':
+        return `ALTER COLUMN ${escapeIdentifier(columnName)} SET COLLATE ${value}`
+    }
   }
 }
 

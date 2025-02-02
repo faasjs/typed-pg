@@ -25,13 +25,17 @@
   },
   "funding": "https://github.com/sponsors/faasjs",
   "scripts": {
-    "build": "tsup-node src/index.ts --config tsup.config.ts",
+    "build": "tsup-node --config tsup.config.ts",
     "test": "vitest --run",
     "ci": "vitest run --silent --coverage"
+  },
+  "bin": {
+    "typed-pg": "dist/cli/index.mjs"
   },
   "files": ["dist"],
   "devDependencies": {
     "postgres": "*",
+    "tsx": "*",
     "tsup": "*",
     "faasjs": "*",
     "@faasjs/lint": "*",
@@ -40,7 +44,8 @@
     "@vitest/coverage-v8": "*"
   },
   "peerDependencies": {
-    "postgres": "*"
+    "postgres": "*",
+    "tsx": "*"
   },
   "engines": {
     "node": ">=22.0.0",
