@@ -17,6 +17,13 @@ export class Client {
     return new QueryBuilder<T>(this, table)
   }
 
+  async transaction<T>(fn: (client: Client) => Promise<T>) {
+    return this.postgres.begin(async (sql) => {
+      const client = new Client(sql)
+      return fn(client)
+    })
+  }
+
   async raw<T extends Record<string, any> = any>(
     query: string | TemplateStringsArray,
     ...params: any[]

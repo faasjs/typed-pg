@@ -7,6 +7,7 @@ export type User = {
   name: string
   metadata: {
     age: number
+    gender: string
   }
 }
 
@@ -42,7 +43,7 @@ describe('types', () => {
   it('ColumnValue', () => {
     expectTypeOf<ColumnValue<'query', 'id'>>().toEqualTypeOf<number>()
     expectTypeOf<ColumnValue<'query', 'name'>>().toEqualTypeOf<string>()
-    expectTypeOf<ColumnValue<'query', 'metadata'>>().toEqualTypeOf<{ age: number }>()
+    expectTypeOf<ColumnValue<'query', 'metadata'>>().toEqualTypeOf<{ age: number, gender: string }>()
     expectTypeOf<ColumnValue<'query'>>().toEqualTypeOf<any>()
     expectTypeOf<ColumnValue>().toEqualTypeOf<any>()
   })

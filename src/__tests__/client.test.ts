@@ -52,4 +52,10 @@ describe('client', () => {
   it('quit', async () => {
     expect(isAsyncFunction(client.quit)).toBeTruthy()
   })
+
+  it('transaction', async () => {
+    expect(await client.transaction(async (client) => client.raw`SELECT 1`)).toEqual([
+      { '?column?': 1 },
+    ])
+  })
 })
