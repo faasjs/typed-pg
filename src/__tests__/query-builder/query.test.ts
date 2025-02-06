@@ -260,5 +260,24 @@ describe('QueryBuilder/query', () => {
 
       expect(result).toEqual([2, 1])
     })
+
+    it('multiple columns', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .orderBy('name', 'ASC')
+        .orderBy('id', 'DESC')
+        .pluck('id')
+
+      expect(result).toEqual([1, 2])
+    })
+
+    it('with limit and offset', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .orderBy('id', 'DESC')
+        .limit(1)
+        .offset(1)
+        .pluck('id')
+
+      expect(result).toEqual([1])
+    })
   })
 })

@@ -43,7 +43,10 @@ export class QueryBuilder<
   }[] = []
   private limitValue?: number
   private offsetValue?: number
-  private orderByColumns: ColumnName<T>[] = []
+  private orderByColumns: {
+    column: ColumnName<T> | string
+    direction: QueryOrderDirection
+  }[] = []
 
   constructor(client: Client, table: T) {
     this.client = client
@@ -124,7 +127,7 @@ export class QueryBuilder<
     if (!QueryOrderDirections.includes(direction))
       throw Error(`Invalid order direction: ${direction}`)
 
-    this.orderByColumns.push(`${column} ${direction}` as any)
+    this.orderByColumns.push({ column, direction })
 
     return this
   }
@@ -174,6 +177,15 @@ export class QueryBuilder<
     sql.push(whereSql)
     params.push(...whereParams)
 
+    // Add order by
+    if (this.orderByColumns.length > 0)
+      sql.push(
+        'ORDER BY',
+        this.orderByColumns
+          .map(({ column, direction }) => `${escapeIdentifier(column)} ${direction}`)
+          .join(',')
+      )
+
     // Add limit and offset
     if (this.limitValue) {
       sql.push('LIMIT ?')
@@ -185,9 +197,7 @@ export class QueryBuilder<
       params.push(this.offsetValue)
     }
 
-    // Add order by
-    if (this.orderByColumns.length > 0)
-      sql.push('ORDER BY', this.orderByColumns.join(','))
+    console.log(sql.join(' '), params)
 
     return {
       sql: sql.join(' '),
