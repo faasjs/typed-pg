@@ -197,8 +197,6 @@ export class QueryBuilder<
       params.push(this.offsetValue)
     }
 
-    console.log(sql.join(' '), params)
-
     return {
       sql: sql.join(' '),
       params,
@@ -224,10 +222,16 @@ export class QueryBuilder<
   }
 
   async count() {
-    this.select('COUNT(*)' as any)
+    const sql = ['SELECT COUNT(*) AS count']
+    const params: any[] = []
 
-    const { sql, params } = this.toSql()
-    const result = await this.client.raw(sql, params)
+    sql.push('FROM', escapeIdentifier(this.table))
+
+    const { sql: whereSql, params: whereParams } = this.buildWhereSql()
+    sql.push(whereSql)
+    params.push(...whereParams)
+
+    const result = await this.client.raw(sql.join(' '), params)
 
     return Number.parseInt(result[0].count, 10)
   }

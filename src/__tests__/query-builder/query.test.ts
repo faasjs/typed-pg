@@ -211,10 +211,21 @@ describe('QueryBuilder/query', () => {
   })
 
   describe('count', () => {
-    it('counts the number of rows', async () => {
+    it('should work', async () => {
       const result = await new QueryBuilder(client, 'query').count()
 
       expect(result).toEqual(2)
+    })
+
+    it('work with where and ignore orderBy, limit and offset', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .where('name', 'Alice')
+        .orderBy('id')
+        .limit(1)
+        .offset(1)
+        .count()
+
+      expect(result).toEqual(1)
     })
   })
 

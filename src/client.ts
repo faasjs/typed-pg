@@ -42,6 +42,8 @@ export class Client {
     let paramIndex = 0
     const text = (query as string).replace(/\?/g, () => `$${++paramIndex}`)
 
+    console.log('raw', text, paramsArray)
+
     return this.postgres.unsafe(text, paramsArray) as Promise<T[]>
   }
 
