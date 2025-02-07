@@ -57,9 +57,24 @@ type ColumnDefinition = {
 }
 
 type AlterOperation =
-  | { type: 'renameColumn'; from: string; to: string }
-  | { type: 'dropColumn'; name: string }
-  | { type: 'alterColumn'; name: string; changes: Partial<ColumnDefinition> };
+  | {
+    type: 'renameColumn'
+    from: string
+    to: string
+  }
+  | {
+    type: 'dropColumn'
+    name: string
+  }
+  | {
+    type: 'alterColumn'
+    name: string
+    changes: Partial<ColumnDefinition>
+  }
+  | {
+    type: 'dropIndex'
+    name: string
+  }
 
 export type TableBuilderMode = 'create' | 'alter'
 
@@ -185,9 +200,28 @@ export class TableBuilder {
   }
 
   index(columns: string | string[], indexName?: string) {
-    const name = indexName || `idx_${this.tableName}_${columns}`
+    const name = indexName || `idx_${this.tableName}_${Array.isArray(columns) ? columns.join('_') : columns}`
+
     this.indices.set(name, Array.isArray(columns) ? columns : [columns])
+
     return this
+  }
+
+  dropIndex(columns: string | string[], indexName?: string) {
+    const name = indexName || `idx_${this.tableName}_${Array.isArray(columns) ? columns.join('_') : columns}`
+
+    if (this.indices.has(name)) {
+      this.indices.delete(name)
+      return this
+    }
+
+    if (this.mode === 'create')
+      throw Error(`dropIndex failed: Index "${name}" does not exist`)
+
+    this.operations.push({
+      type: 'dropIndex',
+      name,
+    });
   }
 
   toSQL(): string[] {
@@ -220,6 +254,11 @@ export class TableBuilder {
               sql.push(
                 ...Object.entries(operation.changes)
                   .map(([key, value]) => `ALTER TABLE ${escapeIdentifier(this.tableName)} ${this.alterToSql(operation.name, key as keyof ColumnDefinition, value)};`)
+              )
+              break
+            case 'dropIndex':
+              sql.push(
+                `DROP INDEX IF EXISTS ${escapeIdentifier(operation.name)};`
               )
               break
           }

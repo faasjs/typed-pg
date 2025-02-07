@@ -35,6 +35,8 @@ export class SchemaBuilder {
     for (const builder of this.tables.values())
       statements.push(...builder.toSQL())
 
+    console.log(statements)
+
     return statements
   }
 

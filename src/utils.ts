@@ -25,6 +25,8 @@ export function escapeValue(value: any): string {
   }
 
   if (typeof value === 'string') {
+    if (value === 'now()') return value
+
     return `'${value.replace(/'/g, "''")}'`
   }
 
