@@ -208,7 +208,7 @@ export async function main(operation = process.argv[2] as string) {
         mkdirSync(folder, { recursive: true })
       writeFileSync(file, `
 // ${filename}.ts
-import type { SchemaBuilder } from '@typed-pg/schema-builder'
+import type { SchemaBuilder } from 'typed-pg'
 
 export function up(builder: SchemaBuilder) {
   // Write your migration here
