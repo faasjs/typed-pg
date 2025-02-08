@@ -1,5 +1,5 @@
 import type { Client } from './client'
-import type { ColumnName, ColumnValue, TableName, TableType } from './types'
+import type { ColumnName, ColumnValue, TableName, Tables, TableType } from './types'
 import { escapeIdentifier } from './utils'
 
 const NormalOperators = ['=', '!=', '<', '<=', '>', '>='] as const
@@ -20,14 +20,62 @@ const QueryOrderDirections = ['ASC', 'DESC'] as const
 
 type QueryOrderDirection = (typeof QueryOrderDirections)[number]
 
+type IsObject<T> = T extends object ? true : false
+
+type GetTableType<T extends TableName | string> = T extends keyof Tables
+  ? Tables[T]
+  : never
+
+type JsonbColumns<T extends TableName | string, Table = TableType<T>> = {
+  [K in keyof Table]: IsObject<Table[K]> extends true ? K : never
+}[keyof Table]
+
+type JsonbFields<
+  T extends TableName | string,
+  C extends JsonbColumns<T>,
+> = keyof GetTableType<T>[C & keyof GetTableType<T>]
+
+type JsonSelectField<T extends TableName | string> = {
+  column: JsonbColumns<T>
+  fields: JsonbFields<T, JsonbColumns<T>>[]
+  alias?: string
+}
+
+type InferJsonFields<
+  T extends TableName | string,
+  C extends JsonbColumns<T>,
+  Fields extends JsonbFields<T, C>[]
+> = {
+    [K in C & keyof GetTableType<T>]: Pick<GetTableType<T>[K], Fields[number]>
+  }
+
+type InferColumnType<
+  T extends TableName | string,
+  C extends ColumnName<T> | JsonSelectField<T>
+> = C extends JsonSelectField<T>
+  ? InferJsonFields<T, C['column'], C['fields']>
+  : C extends keyof GetTableType<T>
+  ? { [K in C]: GetTableType<T>[K] }
+  : never
+
+type Flatten<T> = { [K in keyof T]: T[K] }
+
+type UnionToIntersection<U> = (
+  U extends any ? (k: U) => void : never
+) extends (k: infer I) => void
+  ? I
+  : never
+
+type MergeTypes<T> = T extends any[] ? Flatten<UnionToIntersection<T[number]>> : T
+
 type InferTResult<
   TName extends TableName | string,
-  ColumnNames extends ColumnName<TName>[] = ColumnName<TName>[],
+  ColumnNames extends (ColumnName<TName> | JsonSelectField<TName>)[] = ColumnName<TName>[],
 > = ColumnNames extends ['*']
   ? TableType<TName>
-  : ColumnNames[number] extends keyof TableType<TName>
-  ? Pick<TableType<TName>, ColumnNames[number]>
-  : Record<string, any>[]
+  : MergeTypes<{
+    [K in keyof ColumnNames]: InferColumnType<TName, ColumnNames[K]>
+  }>
 
 export class QueryBuilder<
   T extends TableName | string = string,
@@ -35,7 +83,7 @@ export class QueryBuilder<
 > {
   private client: Client
   private table: T
-  private selectColumns: ColumnName<T>[] = []
+  private selectColumns: (ColumnName<T> | JsonSelectField<T>)[] = []
   private whereConditions: {
     column: ColumnName<T> | string
     operator: Operator
@@ -53,7 +101,21 @@ export class QueryBuilder<
     this.table = table
   }
 
-  select<ColumnNames extends ColumnName<T>[]>(
+  /**
+   * Selects specific columns for the query.
+   *
+   * @template ColumnNames - An array of column names or JSON select fields.
+   * @param {...ColumnNames} columns - The columns to select.
+   * @returns {QueryBuilder<T, InferTResult<T, ColumnNames>>} The query builder instance with the selected columns.
+   *
+   * @example
+   * ```ts
+   * const users = await db('users').select('id', 'name') // SELECT id, name FROM users
+   *
+   * const users = await db('users').select('id', { column: 'data', fields: ['email'] }) // SELECT id, jsonb_build_object('email', data->'email') AS data FROM users
+   * ```
+   */
+  select<ColumnNames extends (ColumnName<T> | JsonSelectField<T>)[]>(
     ...columns: ColumnNames
   ): QueryBuilder<T, InferTResult<T, ColumnNames>> {
     if (columns?.length > 0) this.selectColumns = columns
@@ -167,7 +229,7 @@ export class QueryBuilder<
     const params: any[] = []
 
     // Add columns
-    sql.push(this.selectColumns.map(escapeIdentifier).join(',') || '*')
+    sql.push(this.selectColumns.map(c => typeof c === 'string' ? escapeIdentifier(c) : `jsonb_build_object(${c.fields.map(f => `'${f as string}', ${escapeIdentifier(c.column as string)}->'${f as string}'`).join(',')}) AS ${escapeIdentifier(c.alias || c.column as string)}`).join(',') || '*')
 
     // Add table
     sql.push('FROM', escapeIdentifier(this.table))

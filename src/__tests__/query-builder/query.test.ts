@@ -62,6 +62,23 @@ describe('QueryBuilder/query', () => {
       ])
       expectTypeOf(result).toEqualTypeOf<Pick<User, 'name' | 'metadata'>>()
     })
+
+    it('select jsonb', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .select({
+          column: 'metadata',
+          fields: ['age'],
+        })
+        .orderBy('id', 'ASC')
+
+      expect(result).toEqual([
+        { metadata: { age: 100 } },
+        { metadata: { age: null } },
+      ])
+      expectTypeOf(result).toEqualTypeOf<{
+        metadata: Pick<User['metadata'], 'age'>
+      }>()
+    })
   })
 
   describe('where', () => {
