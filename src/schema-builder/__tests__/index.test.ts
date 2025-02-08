@@ -125,6 +125,11 @@ describe('SchemaBuilder', () => {
         unique: true,
         check: 'updated_at > now()',
       })
+      table.index('number', {
+        unique: true,
+        indexType: 'btree',
+      })
+      table.raw('SELECT 1')
     })
 
     await builder.run()
@@ -157,6 +162,17 @@ describe('SchemaBuilder', () => {
       indexname: 'alters_pkey',
       tablespace: null,
       indexdef: 'CREATE UNIQUE INDEX alters_pkey ON public.alters USING btree (updated_at)',
+    })
+
+    expect(
+      indices.find(i => i.indexname.includes('idx_alters_number'))
+    ).toMatchObject({
+      schemaname: 'public',
+      tablename: 'alters',
+      indexname: 'idx_alters_number',
+      tablespace: null,
+      indexdef:
+        'CREATE UNIQUE INDEX idx_alters_number ON public.alters USING btree (number)',
     })
   })
 })

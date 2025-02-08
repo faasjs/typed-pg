@@ -78,12 +78,19 @@ type AlterOperation =
 
 export type TableBuilderMode = 'create' | 'alter'
 
+export type IndexDefs = {
+  columns: string[]
+  unique?: boolean
+  indexType?: string
+}
+
 export class TableBuilder {
   private tableName: string
   private mode: TableBuilderMode
   private columns: Map<string, ColumnDefinition> = new Map()
-  private indices: Map<string, string[]> = new Map()
+  private indices: Map<string, IndexDefs> = new Map()
   private operations: AlterOperation[] = [];
+  private raws: string[] = []
 
   constructor(tableName: string, mode: TableBuilderMode) {
     this.tableName = tableName
@@ -199,16 +206,19 @@ export class TableBuilder {
     return this
   }
 
-  index(columns: string | string[], indexName?: string) {
-    const name = indexName || `idx_${this.tableName}_${Array.isArray(columns) ? columns.join('_') : columns}`
+  index(columns: string | string[], options: Omit<IndexDefs, 'columns'> = {}) {
+    const name = `idx_${this.tableName}_${Array.isArray(columns) ? columns.join('_') : columns}`
 
-    this.indices.set(name, Array.isArray(columns) ? columns : [columns])
+    this.indices.set(name, {
+      columns: Array.isArray(columns) ? columns : [columns],
+      ...options
+    })
 
     return this
   }
 
-  dropIndex(columns: string | string[], indexName?: string) {
-    const name = indexName || `idx_${this.tableName}_${Array.isArray(columns) ? columns.join('_') : columns}`
+  dropIndex(columns: string | string[]) {
+    const name = `idx_${this.tableName}_${Array.isArray(columns) ? columns.join('_') : columns}`
 
     if (this.indices.has(name)) {
       this.indices.delete(name)
@@ -222,6 +232,12 @@ export class TableBuilder {
       type: 'dropIndex',
       name,
     });
+  }
+
+  raw(sql: string) {
+    this.raws.push(sql)
+
+    return this
   }
 
   toSQL(): string[] {
@@ -267,11 +283,11 @@ export class TableBuilder {
     }
 
     const indexDefs = Array.from(this.indices.entries())
-      .map(([name, columns]) => this.indexToSQL(name, columns))
+      .map(([name, definition]) => this.indexToSQL(name, definition))
 
     sql.push(indexDefs.join('\n'))
 
-    // console.log(sql.join('\n'))
+    sql.push(...this.raws)
 
     return sql
   }
@@ -291,8 +307,19 @@ export class TableBuilder {
     return parts.join(' ')
   }
 
-  private indexToSQL(name: string, columns: string[]): string {
-    return `CREATE INDEX ${escapeIdentifier(name)} ON ${escapeIdentifier(this.tableName)} (${columns.map(escapeIdentifier).join(', ')});`
+  private indexToSQL(name: string, defs: IndexDefs): string {
+    const parts = [
+      'CREATE',
+      defs.unique ? 'UNIQUE' : '',
+      'INDEX',
+      escapeIdentifier(name),
+      'ON',
+      escapeIdentifier(this.tableName),
+      defs.indexType ? `USING ${defs.indexType}` : '',
+      `(${defs.columns.map(escapeIdentifier).join(', ')});`
+    ].filter(Boolean)
+
+    return parts.join(' ')
   }
 
   private alterToSql(columnName: string, type: keyof ColumnDefinition, value: any) {
