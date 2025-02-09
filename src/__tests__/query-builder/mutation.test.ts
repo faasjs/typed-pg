@@ -93,4 +93,102 @@ describe('QueryBuilder/mutation', () => {
       expect(result).toEqual(['Bob'])
     })
   })
+
+  describe('upsert', () => {
+    it('insert a row', async () => {
+      const returning = await new QueryBuilder(client, 'mutation').upsert(
+        {
+          id: 3,
+          name: 'Charlie',
+          metadata: { age: 50 },
+        },
+        {
+          conflict: ['id'],
+          returning: ['metadata'],
+        }
+      )
+
+      expect(returning).toEqual([{ metadata: { age: 50 } }])
+
+      const result = await new QueryBuilder(client, 'mutation').orderBy('id', 'ASC').pluck('metadata')
+
+      expect(result).toEqual([{ age: 100 }, {}, { age: 50 }])
+    })
+
+    it('update a row', async () => {
+      const returning = await new QueryBuilder(client, 'mutation').upsert(
+        {
+          id: 1,
+          name: 'Alice',
+          metadata: { age: 50 },
+        },
+        {
+          conflict: ['id'],
+          returning: ['metadata'],
+        }
+      )
+
+      expect(returning).toEqual([{ metadata: { age: 50 } }])
+
+      const result = await new QueryBuilder(client, 'mutation').orderBy('id', 'ASC').pluck('metadata')
+
+      expect(result).toEqual([{ age: 50 }, {}])
+    })
+
+    it('insert multiple rows', async () => {
+      const returning = await new QueryBuilder(client, 'mutation').upsert(
+        [
+          { id: 3, name: 'Charlie', metadata: { age: 50 } },
+          { id: 4, name: 'David', metadata: { age: 25 } },
+        ],
+        {
+          conflict: ['id'],
+          returning: ['metadata'],
+        }
+      )
+
+      expect(returning).toEqual([{ metadata: { age: 50 } }, { metadata: { age: 25 } }])
+
+      const result = await new QueryBuilder(client, 'mutation').orderBy('id', 'ASC').pluck('metadata')
+
+      expect(result).toEqual([{ age: 100 }, {}, { age: 50 }, { age: 25 }])
+    })
+
+    it('update multiple rows', async () => {
+      const returning = await new QueryBuilder(client, 'mutation').upsert(
+        [
+          { id: 1, name: 'Alice', metadata: { age: 50 } },
+          { id: 2, name: 'Bob', metadata: { age: 25 } },
+        ],
+        {
+          conflict: ['id'],
+          returning: ['metadata'],
+        }
+      )
+
+      expect(returning).toEqual([{ metadata: { age: 50 } }, { metadata: { age: 25 } }])
+
+      const result = await new QueryBuilder(client, 'mutation').orderBy('id', 'ASC').pluck('metadata')
+
+      expect(result).toEqual([{ age: 50 }, { age: 25 }])
+    })
+
+    it('specified update columns', async () => {
+      const returning = await new QueryBuilder(client, 'mutation').upsert(
+        { id: 1, name: 'new', metadata: { age: 50 } },
+        {
+          conflict: ['id'],
+          returning: ['name'],
+          update: ['metadata'],
+        }
+      )
+
+      expect(returning).toEqual([{ name: 'Alice' }])
+
+      const result = await new QueryBuilder(client, 'mutation').orderBy('id', 'ASC').first()
+
+      expect(result?.name).toEqual('Alice')
+      expect(result?.metadata).toEqual({ age: 50 })
+    })
+  })
 })

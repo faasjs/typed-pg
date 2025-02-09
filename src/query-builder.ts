@@ -104,9 +104,7 @@ export class QueryBuilder<
   /**
    * Selects specific columns for the query.
    *
-   * @template ColumnNames - An array of column names or JSON select fields.
    * @param {...ColumnNames} columns - The columns to select.
-   * @returns {QueryBuilder<T, InferTResult<T, ColumnNames>>} The query builder instance with the selected columns.
    *
    * @example
    * ```ts
@@ -123,6 +121,24 @@ export class QueryBuilder<
     return this as any
   }
 
+  /**
+   * Applies a WHERE condition to the query builder.
+   *
+   * @param column - The column to filter on.
+   * @param operator - The operator to use for comparison.
+   * @param value - The value to compare against.
+   *
+   * @example
+   * ```ts
+   * await query('users').where('id', 1) // WHERE id = 1
+   *
+   * await query('users').where('id', '>', 1) // WHERE id > 1
+   *
+   * await query('users').where('id', 'IN', [1, 2, 3]) // WHERE id IN (1, 2, 3)
+   *
+   * await query('users').where('data', '@>', { email: 'example@example.com' }) // WHERE data @> '{"email": "example@example.com"}'
+   * ```
+   */
   where<C extends ColumnName<T>>(
     column: C,
     operator: (typeof NormalOperators)[number],
@@ -172,16 +188,47 @@ export class QueryBuilder<
     return this
   }
 
+  /**
+   * Sets the limit value for the query.
+   *
+   * @param value - The maximum number of records to retrieve.
+   *
+   * @example
+   * ```ts
+   * await query('users').limit(10) // LIMIT 10
+   * ```
+   */
   limit(value: number) {
     this.limitValue = value
     return this
   }
 
+  /**
+   * Sets the offset value for the query.
+   *
+   * @param value - The number of records to skip.
+   *
+   * @example
+   * ```ts
+   * await query('users').offset(10) // OFFSET 10
+   * ```
+   */
   offset(value: number) {
     this.offsetValue = value
     return this
   }
 
+  /**
+   * Sets the order by column and direction for the query.
+   *
+   * @param column - The column to order by.
+   * @param direction - The direction to order by.
+   *
+   * @example
+   * ```ts
+   * await query('users').orderBy('id', 'DESC') // ORDER BY id DESC
+   * ```
+   */
   orderBy<C extends ColumnName<T>>(
     column: C,
     direction: QueryOrderDirection = 'ASC'
@@ -283,6 +330,16 @@ export class QueryBuilder<
     return this.client.raw(sql, ...params).then(rows => rows[0])
   }
 
+  /**
+   * Executes a SQL query to count the number of rows in the specified table.
+   *
+   * @returns {Promise<number>} A promise that resolves to the count of rows in the table.
+   *
+   * @example
+   * ```ts
+   * const count = await db('users').count() // => 2
+   * ```
+   */
   async count() {
     const sql = ['SELECT COUNT(*) AS count']
     const params: any[] = []
@@ -298,6 +355,18 @@ export class QueryBuilder<
     return Number.parseInt(result[0].count, 10)
   }
 
+  /**
+   * Asynchronously retrieves the values of a specified column from the database.
+   *
+   * @template C - The type of the column name.
+   * @param {C} column - The name of the column to pluck values from.
+   * @returns {Promise<ColumnValue<T, C>[]>} A promise that resolves to an array of values from the specified column.
+   *
+   * @example
+   * ```ts
+   * const names = await db('users').pluck('name') // => ['Alice', 'Bob']
+   * ```
+   */
   async pluck<C extends ColumnName<T>>(
     column: C
   ): Promise<ColumnValue<T, C>[]> {
@@ -309,6 +378,23 @@ export class QueryBuilder<
     return result.map((row: any) => row[column])
   }
 
+  /**
+   * Inserts one or more rows into the table.
+   *
+   * @template FirstValue - The type of the first value to insert, which must be a partial of the table type.
+   * @template Returning - The type of the columns to return, which can be an array of keys of the table type or ['*'].
+   *
+   * @param values - The value or array of values to insert. If an array, the first value is used to determine the columns.
+   * @param options - Optional settings for the insert operation.
+   * @param options.returning - An array of columns to return, or ['*'] to return all columns.
+   *
+   * @example
+   * ```ts
+   * await db('users').insert({ id: 3, name: 'Charlie' }) // => []
+   *
+   * await db('users').insert({ id: 3, name: 'Charlie' }, { returning: ['name'] }) // => [{ name: 'Charlie' }]
+   * ```
+   */
   async insert<FirstValue extends Partial<TableType<T>>, Returning extends (keyof TableType<T>)[] | ['*']>(
     values: FirstValue | [FirstValue, ...{
       [K in Extract<keyof FirstValue, string | ColumnName<T>>]: ColumnValue<T, K>
@@ -344,6 +430,21 @@ export class QueryBuilder<
     return this.client.raw(sql.join(' '), ...(valuesArray.map(v => Object.values(v))).flat()) as any
   }
 
+  /**
+   * Updates records in the table with the specified values and returns the updated records.
+   *
+   * @template Returning - An array of keys of the table type or ['*'] to return all columns.
+   * @param {Partial<TableType<T>>} values - The values to update in the table.
+   * @param {Object} [options] - Optional settings for the update operation.
+   * @param {Returning} [options.returning] - An array of columns to return after the update.
+   *
+   * @example
+   * ```ts
+   * await db('users').where('id', 1).update({ name: 'Alice' }) // => []
+   *
+   * await db('users').where('id', 1).update({ name: 'Alice' }, { returning: ['name'] }) // => [{ name: 'Alice' }]
+   * ```
+   */
   async update<Returning extends (keyof TableType<T>)[] | ['*']>(
     values: Partial<TableType<T>>,
     options: { returning?: Returning } = {}
@@ -384,6 +485,17 @@ export class QueryBuilder<
     return this.client.raw(sql.join(' '), ...params) as any
   }
 
+  /**
+   * Deletes records from the specified table based on the provided where conditions.
+   *
+   * @throws {Error} If no where conditions are provided.
+   * @returns {Promise<any>} The result of the raw SQL execution.
+   *
+   * @example
+   * ```ts
+   * await db('users').where('id', 1).delete() // DELETE FROM users WHERE id = 1
+   * ```
+   */
   async delete() {
     const sql = ['DELETE FROM', escapeIdentifier(this.table)]
 
@@ -395,5 +507,42 @@ export class QueryBuilder<
     sql.push(whereSql)
 
     return this.client.raw(sql.join(' '), ...whereParams)
+  }
+
+  async upsert<FirstValue extends Partial<TableType<T>>>(
+    values: FirstValue | [FirstValue, ...{
+      [K in Extract<keyof FirstValue, string | ColumnName<T>>]: ColumnValue<T, K>
+    }[]],
+    options: {
+      conflict: ColumnName<T>[]
+      update?: (keyof FirstValue)[]
+      returning?: (keyof FirstValue)[] | ['*']
+    }
+  ) {
+    const valuesArray = Array.isArray(values) ? values : [values]
+
+    const sql = [
+      'INSERT INTO',
+      escapeIdentifier(this.table),
+      '(',
+      Object.keys(valuesArray[0]).map(escapeIdentifier).join(','),
+      ') VALUES',
+
+      valuesArray.map((v) => `(${Object.keys(v).map(() => '?').join(',')})`).join(','),
+
+      'ON CONFLICT',
+      `(${options.conflict.map(escapeIdentifier).join(',')})`,
+
+      'DO UPDATE SET',
+      Object.keys(valuesArray[0])
+        .filter(column => !options.conflict.includes(column as ColumnName<T>) && (options.update ? options.update.includes(column as keyof FirstValue) : true))
+        .map(column => `${escapeIdentifier(column)} = EXCLUDED.${escapeIdentifier(column)}`)
+        .join(','),
+
+      options.returning?.length ?
+        `RETURNING ${options.returning.map(c => escapeIdentifier(c as string)).join(',')}` : ''
+    ].filter(Boolean)
+
+    return this.client.raw(sql.join(' '), ...(valuesArray.map(v => Object.values(v))).flat()) as any
   }
 }
