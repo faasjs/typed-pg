@@ -39,13 +39,13 @@ describe('SchemaBuilder', () => {
 
     const tables = await client.raw(
       'SELECT * FROM information_schema.tables WHERE table_name = ?',
-      ['creators']
+      'creators'
     )
     expect(tables[0]).toMatchObject({ table_name: 'creators' })
 
     const columns = await client.raw(
       'SELECT * FROM information_schema.columns WHERE table_name = ?',
-      ['creators']
+      'creators'
     )
 
     for (const column of [
@@ -76,7 +76,7 @@ describe('SchemaBuilder', () => {
 
     const indices = await client.raw(
       'SELECT * FROM pg_indexes WHERE tablename = ?',
-      ['creators']
+      'creators'
     )
 
     expect(
@@ -136,7 +136,7 @@ describe('SchemaBuilder', () => {
 
     const columns = await client.raw(
       'SELECT * FROM information_schema.columns WHERE table_name = ?',
-      ['alters']
+      'alters'
     )
 
     for (const column of [
@@ -151,7 +151,7 @@ describe('SchemaBuilder', () => {
 
     const indices = await client.raw(
       'SELECT * FROM pg_indexes WHERE tablename = ?',
-      ['alters']
+      'alters'
     )
 
     expect(
