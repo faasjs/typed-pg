@@ -78,10 +78,12 @@ type AlterOperation =
 
 export type TableBuilderMode = 'create' | 'alter'
 
+type IndexType = 'btree' | 'hash' | 'gist' | 'gin' | 'spgist' | 'brin'
+
 export type IndexDefs = {
   columns: string[]
   unique?: boolean
-  indexType?: string
+  indexType?: IndexType
 }
 
 export class TableBuilder {

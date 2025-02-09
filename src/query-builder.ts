@@ -16,7 +16,7 @@ const Operators = [
 
 type Operator = (typeof Operators)[number]
 
-const QueryOrderDirections = ['ASC', 'DESC'] as const
+const QueryOrderDirections = ['ASC', 'DESC', 'asc', 'desc'] as const
 
 type QueryOrderDirection = (typeof QueryOrderDirections)[number]
 
