@@ -309,8 +309,10 @@ export class QueryBuilder<
     return result.map((row: any) => row[column])
   }
 
-  async insert<Returning extends (keyof TableType<T>)[] | ['*']>(
-    values: Partial<TableType<T>>,
+  async insert<FirstValue extends Partial<TableType<T>>, Returning extends (keyof TableType<T>)[] | ['*']>(
+    values: FirstValue | [FirstValue, ...{
+      [K in Extract<keyof FirstValue, string | ColumnName<T>>]: ColumnValue<T, K>
+    }[]],
     options: { returning?: Returning } = {}
   ): Promise<
     Returning extends ['*']
@@ -319,16 +321,16 @@ export class QueryBuilder<
     ? Pick<TableType<T>, Returning[number]>
     : Record<string, any>[]
   > {
+    const valuesArray = Array.isArray(values) ? values : [values]
+
     const sql = [
       'INSERT INTO',
       escapeIdentifier(this.table),
       '(',
-      Object.keys(values).map(escapeIdentifier).join(','),
-      ') VALUES (',
-      Object.values(values)
-        .map(() => '?')
-        .join(','),
-      ')',
+      Object.keys(valuesArray[0]).map(escapeIdentifier).join(','),
+      ') VALUES',
+
+      valuesArray.map((v) => `(${Object.keys(v).map(() => '?').join(',')})`).join(',')
     ]
 
     if (options.returning?.length)
@@ -339,7 +341,7 @@ export class QueryBuilder<
           .join(',')
       )
 
-    return this.client.raw(sql.join(' '), ...Object.values(values)) as any
+    return this.client.raw(sql.join(' '), ...(valuesArray.map(v => Object.values(v))).flat()) as any
   }
 
   async update<Returning extends (keyof TableType<T>)[] | ['*']>(
