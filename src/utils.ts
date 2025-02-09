@@ -45,11 +45,19 @@ export function escapeValue(value: any): string {
   throw Error(`Unsupported value: ${value}`)
 }
 
-export function createTemplateStringsArray(str: string): TemplateStringsArray {
-  const arr = [str]
+export function isTemplateStringsArray(value: any): value is TemplateStringsArray {
+  return Array.isArray(value) && typeof value[0] === 'string' && 'raw' in value
+}
+
+export function createTemplateStringsArray(str: string | TemplateStringsArray): TemplateStringsArray {
+  if (isTemplateStringsArray(str)) return str
+
+  const parts = str.split(/\?/g)
+
+  const arr = [...parts]
 
   Object.defineProperty(arr, "raw", {
-    value: Object.freeze([str])
+    value: Object.freeze([...parts])
   })
 
   return Object.freeze(arr) as TemplateStringsArray

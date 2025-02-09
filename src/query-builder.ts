@@ -272,7 +272,7 @@ export class QueryBuilder<
   ): Promise<TResult1 | TResult2> {
     const { sql, params } = this.toSql()
 
-    return this.client.raw(sql, params).then(onfulfilled as any, onrejected)
+    return this.client.raw(sql, ...params).then(onfulfilled as any, onrejected)
   }
 
   async first(): Promise<(TResult extends (infer U)[] ? U : TResult) | null> {
@@ -280,7 +280,7 @@ export class QueryBuilder<
 
     const { sql, params } = this.toSql()
 
-    return this.client.raw(sql, params).then(rows => rows[0])
+    return this.client.raw(sql, ...params).then(rows => rows[0])
   }
 
   async count() {
@@ -293,7 +293,7 @@ export class QueryBuilder<
     sql.push(whereSql)
     params.push(...whereParams)
 
-    const result = await this.client.raw(sql.join(' '), params)
+    const result = await this.client.raw(sql.join(' '), ...params)
 
     return Number.parseInt(result[0].count, 10)
   }
@@ -304,7 +304,7 @@ export class QueryBuilder<
     this.selectColumns = [column]
 
     const { sql, params } = this.toSql()
-    const result = await this.client.raw(sql, params)
+    const result = await this.client.raw(sql, ...params)
 
     return result.map((row: any) => row[column])
   }
@@ -339,7 +339,7 @@ export class QueryBuilder<
           .join(',')
       )
 
-    return this.client.raw(sql.join(' '), Object.values(values)) as any
+    return this.client.raw(sql.join(' '), ...Object.values(values)) as any
   }
 
   async update<Returning extends (keyof TableType<T>)[] | ['*']>(
@@ -379,7 +379,7 @@ export class QueryBuilder<
           .join(',')
       )
 
-    return this.client.raw(sql.join(' '), params) as any
+    return this.client.raw(sql.join(' '), ...params) as any
   }
 
   async delete() {
@@ -392,6 +392,6 @@ export class QueryBuilder<
 
     sql.push(whereSql)
 
-    return this.client.raw(sql.join(' '), whereParams)
+    return this.client.raw(sql.join(' '), ...whereParams)
   }
 }

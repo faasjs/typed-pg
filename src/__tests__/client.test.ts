@@ -34,7 +34,7 @@ describe('client', () => {
 
     it('string with type cast', async () => {
       expect(
-        await client.raw('SELECT ?::integer + ?::integer', [1, 1])
+        await client.raw('SELECT ?::integer + ?::integer', 1, 1)
       ).toEqual([{ '?column?': 2 }])
     })
 

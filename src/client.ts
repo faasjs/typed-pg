@@ -1,10 +1,7 @@
 import type { Sql } from 'postgres'
 import type { TableName } from './types'
 import { QueryBuilder } from './query-builder'
-
-function isTemplateStringsArray(value: any): value is TemplateStringsArray {
-  return Array.isArray(value) && typeof value[0] === 'string' && 'raw' in value
-}
+import { createTemplateStringsArray } from './utils'
 
 export class Client {
   readonly postgres: Sql
@@ -18,7 +15,7 @@ export class Client {
   }
 
   async transaction<T>(fn: (client: Client) => Promise<T>) {
-    return this.postgres.begin(async (sql) => {
+    return this.postgres.begin(async sql => {
       const client = new Client(sql)
       return fn(client)
     })
@@ -28,23 +25,9 @@ export class Client {
     query: string | TemplateStringsArray,
     ...params: any[]
   ): Promise<T[]> {
-    if (isTemplateStringsArray(query)) {
-      return this.postgres.call(
-        this.postgres,
-        query,
-        ...params
-      ) as unknown as Promise<T[]>
-    }
+    const templateStringsArray = createTemplateStringsArray(query)
 
-    const paramsArray =
-      params.length === 1 && Array.isArray(params[0]) ? params[0] : params
-
-    let paramIndex = 0
-    const text = (query as string).replace(/\?/g, () => `$${++paramIndex}`)
-
-    console.log('raw', text, paramsArray)
-
-    return this.postgres.unsafe(text, paramsArray) as Promise<T[]>
+    return this.postgres<T[]>(templateStringsArray, ...params)
   }
 
   async quit() {
