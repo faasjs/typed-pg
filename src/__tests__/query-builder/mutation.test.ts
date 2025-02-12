@@ -82,6 +82,18 @@ describe('QueryBuilder/mutation', () => {
 
       expect(result).toEqual(['Bob', 'David'])
     })
+
+    it('updates multiple rows', async () => {
+      const returning = await new QueryBuilder(client, 'mutation')
+        .where('name', 'IN', ['Alice'])
+        .update({ name: 'David' }, { returning: ['name'] })
+
+      expect(returning).toEqual([{ name: 'David' }])
+
+      const result = await new QueryBuilder(client, 'mutation').pluck('name')
+
+      expect(result).toEqual(['Bob', 'David'])
+    })
   })
 
   describe('delete', () => {

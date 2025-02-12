@@ -241,7 +241,7 @@ export class QueryBuilder<
     return this
   }
 
-  private buildWhereSql() {
+  private buildWhereSql(mode: 'query' | 'update' = 'query') {
     const sql = []
     const params: any[] = []
 
@@ -255,6 +255,10 @@ export class QueryBuilder<
 
             if (operator === 'IN' || operator === 'NOT IN') {
               params.push(value)
+
+              if (mode === 'update')
+                return `${escapeIdentifier(column)} = ANY(?)`
+
               return `${escapeIdentifier(column)} ${operator} (${value.map(() => '?').join(',')})`
             }
 
@@ -393,6 +397,8 @@ export class QueryBuilder<
    * await db('users').insert({ id: 3, name: 'Charlie' }) // => []
    *
    * await db('users').insert({ id: 3, name: 'Charlie' }, { returning: ['name'] }) // => [{ name: 'Charlie' }]
+   *
+   * await db('users').insert([{ id: 4, name: 'David' }, { id: 5, name: 'Eve' }]) // => []
    * ```
    */
   async insert<FirstValue extends Partial<TableType<T>>, Returning extends (keyof TableType<T>)[] | ['*']>(
@@ -467,7 +473,7 @@ export class QueryBuilder<
     ]
 
     // Add where conditions
-    const { sql: whereSql, params: whereParams } = this.buildWhereSql()
+    const { sql: whereSql, params: whereParams } = this.buildWhereSql('update')
 
     if (!whereSql) throw new Error('Missing where conditions')
 
@@ -509,6 +515,24 @@ export class QueryBuilder<
     return this.client.raw(sql.join(' '), ...whereParams)
   }
 
+  /**
+   * Inserts or updates records in the database table.
+   *
+   * @template FirstValue - A partial type of the table's row type.
+   *
+   * @param {FirstValue | [FirstValue, ...{ [K in Extract<keyof FirstValue, string | ColumnName<T>>]: ColumnValue<T, K> }[]]} values - The values to insert or update. Can be a single object or an array of objects.
+   * @param {Object} options - The options for the upsert operation.
+   * @param {ColumnName<T>[]} options.conflict - The columns to check for conflicts.
+   * @param {(keyof FirstValue)[]} [options.update] - The columns to update if a conflict occurs.
+   * @param {(keyof FirstValue)[] | ['*']} [options.returning] - The columns to return after the upsert operation.
+   *
+   * @returns {Promise<any>} - A promise that resolves to the result of the upsert operation.
+   *
+   * @example
+   * ```ts
+   * await db('users').upsert({ id: 1, name: 'Alice' }, { conflict: ['id'], update: ['name'] }) // => []
+   * ```
+   */
   async upsert<FirstValue extends Partial<TableType<T>>>(
     values: FirstValue | [FirstValue, ...{
       [K in Extract<keyof FirstValue, string | ColumnName<T>>]: ColumnValue<T, K>
