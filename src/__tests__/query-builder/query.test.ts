@@ -198,6 +198,35 @@ describe('QueryBuilder/query', () => {
     })
   })
 
+  describe('orWhere', () => {
+    it('column and value', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .where('name', 'Alice')
+        .orWhere('name', 'Bob')
+        .pluck('id')
+
+      expect(result).toEqual([1, 2])
+    })
+
+    it('column, operator, and value', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .where('name', 'Alice')
+        .orWhere('name', '!=', 'Bob')
+        .pluck('id')
+
+      expect(result).toEqual([1])
+    })
+
+    it('multiple conditions', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .where('name', 'Alice')
+        .orWhere('id', '>', 1)
+        .pluck('id')
+
+      expect(result).toEqual([1, 2])
+    })
+  })
+
   describe('limit', () => {
     it('limits the number of results', async () => {
       const result = await new QueryBuilder(client, 'query')

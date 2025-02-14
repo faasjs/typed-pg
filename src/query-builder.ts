@@ -85,6 +85,7 @@ export class QueryBuilder<
   private table: T
   private selectColumns: (ColumnName<T> | JsonSelectField<T>)[] = []
   private whereConditions: {
+    type: 'AND' | 'OR'
     column: ColumnName<T> | string
     operator: Operator
     value: any
@@ -168,6 +169,7 @@ export class QueryBuilder<
       !['IS NULL', 'IS NOT NULL'].includes(operatorOrValue)
     ) {
       this.whereConditions.push({
+        type: 'AND',
         column,
         operator: '=',
         value: operatorOrValue,
@@ -180,6 +182,68 @@ export class QueryBuilder<
       throw new Error(`Invalid operator: ${operatorOrValue}`)
 
     this.whereConditions.push({
+      type: 'AND',
+      column,
+      operator: operatorOrValue,
+      value,
+    })
+
+    return this
+  }
+
+  /**
+   * Applies an OR WHERE condition to the query builder.
+   * @param column - The column to filter on.
+   * @param operator - The operator to use for comparison.
+   * @param value - The value to compare against.
+   * @example
+   * ```ts
+   * await query('users').where('id', 1).orWhere('id', 2) // WHERE id = 1 OR id = 2
+   * ```
+   */
+  orWhere<C extends ColumnName<T>>(
+    column: C,
+    operator: (typeof NormalOperators)[number],
+    value?: ColumnValue<T, C>
+  ): QueryBuilder<T, TResult>
+  orWhere<C extends ColumnName<T>>(
+    column: C,
+    operator: (typeof ArrayOperators)[number],
+    value: ColumnValue<T, C>[]
+  ): QueryBuilder<T, TResult>
+  orWhere<C extends ColumnName<T>>(
+    column: C,
+    operator: (typeof NullOperators)[number]
+  ): QueryBuilder<T, TResult>
+  orWhere<C extends ColumnName<T>>(
+    column: C,
+    operator: (typeof JsonOperators)[number],
+    value: Partial<ColumnValue<T, C>>
+  ): QueryBuilder<T, TResult>
+  orWhere<C extends ColumnName<T>>(
+    column: C,
+    value: ColumnValue<T, C>
+  ): QueryBuilder<T, TResult>
+  orWhere(column: ColumnName<T>, operatorOrValue: Operator | any, value?: any) {
+    if (
+      typeof value === 'undefined' &&
+      !['IS NULL', 'IS NOT NULL'].includes(operatorOrValue)
+    ) {
+      this.whereConditions.push({
+        type: 'OR',
+        column,
+        operator: '=',
+        value: operatorOrValue,
+      })
+
+      return this
+    }
+
+    if (!Operators.includes(operatorOrValue))
+      throw new Error(`Invalid operator: ${operatorOrValue}`)
+
+    this.whereConditions.push({
+      type: 'OR',
       column,
       operator: operatorOrValue,
       value,
@@ -249,23 +313,25 @@ export class QueryBuilder<
       sql.push(
         'WHERE',
         this.whereConditions
-          .map(({ column, operator, value }) => {
+          .map(({ type, column, operator, value }, index) => {
+            const prefix = index > 0 ? `${type} ` : ''
+
             if (operator === 'IS NULL' || operator === 'IS NOT NULL')
-              return `${escapeIdentifier(column)} ${operator}`
+              return `${prefix}${escapeIdentifier(column)} ${operator}`
 
             if (operator === 'IN' || operator === 'NOT IN') {
               params.push(value)
 
               if (mode === 'update')
-                return `${escapeIdentifier(column)} = ANY(?)`
+                return `${prefix}${escapeIdentifier(column)} = ANY(?)`
 
-              return `${escapeIdentifier(column)} ${operator} (${value.map(() => '?').join(',')})`
+              return `${prefix}${escapeIdentifier(column)} ${operator} (${value.map(() => '?').join(',')})`
             }
 
             params.push(value)
-            return `${escapeIdentifier(column)} ${operator} ?`
+            return `${prefix}${escapeIdentifier(column)} ${operator} ?`
           })
-          .join(' AND ')
+          .join(' ')
       )
     }
 
