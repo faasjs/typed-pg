@@ -1,10 +1,11 @@
 import type { Client } from "../client"
-import { createTemplateStringsArray } from "../utils"
+import { createTemplateStringsArray, escapeIdentifier } from "../utils"
 import { TableBuilder } from "./table-builder"
 
 export class SchemaBuilder {
   private client: Client
   private tables: Map<string, TableBuilder> = new Map()
+  private raws: string[] = []
 
   constructor(client: Client) {
     this.client = client
@@ -24,8 +25,13 @@ export class SchemaBuilder {
     return this
   }
 
+  renameTable(oldTableName: string, newTableName: string) {
+    this.raws.push(`alter table ${escapeIdentifier(oldTableName)} rename to ${escapeIdentifier(newTableName)};`)
+    return this
+  }
+
   dropTable(tableName: string) {
-    this.tables.delete(tableName)
+    this.raws.push(`drop table ${escapeIdentifier(tableName)};`)
     return this
   }
 
@@ -35,13 +41,18 @@ export class SchemaBuilder {
     for (const builder of this.tables.values())
       statements.push(...builder.toSQL())
 
+    if (this.raws.length)
+      statements.push(...this.raws)
+
     return statements
   }
 
   async run() {
-    if (this.tables.size === 0) return
+    const statements = this.toSQL()
 
-    await this.client.postgres.begin(async trx => await trx.call(trx, createTemplateStringsArray(this.toSQL().join("\n"))).simple())
+    if (!statements.length) return
+
+    await this.client.postgres.begin(async trx => await trx.call(trx, createTemplateStringsArray(statements.join("\n"))).simple())
 
     this.tables.clear()
   }

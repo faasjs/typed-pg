@@ -1,14 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, afterAll, beforeEach } from 'vitest'
 import { type Client, createClient } from '../../client'
 import { createTestingPostgres } from '../../__tests__/utils'
 import { SchemaBuilder } from '..'
 
 describe('SchemaBuilder', () => {
-  let client: Client
+  const client: Client = createClient(createTestingPostgres())
 
-  beforeAll(async () => {
-    client = createClient(createTestingPostgres())
-
+  beforeEach(async () => {
     await client.raw('DROP TABLE IF EXISTS creators')
     await client.raw('DROP TABLE IF EXISTS alters')
   })
@@ -86,7 +84,8 @@ describe('SchemaBuilder', () => {
       tablename: 'creators',
       indexname: 'creators_pkey',
       tablespace: null,
-      indexdef: 'CREATE UNIQUE INDEX creators_pkey ON public.creators USING btree (string)',
+      indexdef:
+        'CREATE UNIQUE INDEX creators_pkey ON public.creators USING btree (string)',
     })
 
     expect(
@@ -161,7 +160,8 @@ describe('SchemaBuilder', () => {
       tablename: 'alters',
       indexname: 'alters_pkey',
       tablespace: null,
-      indexdef: 'CREATE UNIQUE INDEX alters_pkey ON public.alters USING btree (updated_at)',
+      indexdef:
+        'CREATE UNIQUE INDEX alters_pkey ON public.alters USING btree (updated_at)',
     })
 
     expect(
@@ -174,5 +174,47 @@ describe('SchemaBuilder', () => {
       indexdef:
         'CREATE UNIQUE INDEX idx_alters_number ON public.alters USING btree (number)',
     })
+  })
+
+  it('renameTable', async () => {
+    const builder = new SchemaBuilder(client)
+
+    builder.createTable('creators', table => {
+      table.string('string').primary()
+    })
+
+    await builder.run()
+
+    builder.renameTable('creators', 'alters')
+
+    await builder.run()
+
+    const tables = await client.raw(
+      'SELECT * FROM information_schema.tables WHERE table_name = ?',
+      'alters'
+    )
+
+    expect(tables[0]).toMatchObject({ table_name: 'alters' })
+  })
+
+  it('dropTable', async () => {
+    const builder = new SchemaBuilder(client)
+
+    builder.createTable('creators', table => {
+      table.string('string').primary()
+    })
+
+    await builder.run()
+
+    builder.dropTable('creators')
+
+    await builder.run()
+
+    const tables = await client.raw(
+      'SELECT * FROM information_schema.tables WHERE table_name = ?',
+      'creators'
+    )
+
+    expect(tables).toHaveLength(0)
   })
 })
