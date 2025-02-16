@@ -118,6 +118,7 @@ describe('QueryBuilder/query', () => {
       it('IN', async () => {
         const result = await new QueryBuilder(client, 'query')
           .where('name', 'IN', ['Alice'])
+          .where('id', 'IN', [1, 2])
           .pluck('id')
 
         expect(result).toEqual([1])

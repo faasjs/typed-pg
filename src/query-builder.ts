@@ -320,11 +320,12 @@ export class QueryBuilder<
               return `${prefix}${escapeIdentifier(column)} ${operator}`
 
             if (operator === 'IN' || operator === 'NOT IN') {
-              params.push(value)
-
-              if (mode === 'update')
+              if (mode === 'update') {
+                params.push(value)
                 return `${prefix}${escapeIdentifier(column)} = ANY(?)`
+              }
 
+              params.push(...value)
               return `${prefix}${escapeIdentifier(column)} ${operator} (${value.map(() => '?').join(',')})`
             }
 
