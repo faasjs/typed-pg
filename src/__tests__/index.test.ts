@@ -6,6 +6,11 @@ describe('TypedPg', () => {
     expect(Object.keys(TypedPg)).toEqual([
       'Client',
       'createClient',
+      'escapeIdentifier',
+      'escapeValue',
+      'rawSql',
+      'isTemplateStringsArray',
+      'createTemplateStringsArray',
     ])
   })
 })
