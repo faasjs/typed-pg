@@ -206,8 +206,7 @@ export async function main(operation = process.argv[2] as string) {
 
       if (!existsSync(folder))
         mkdirSync(folder, { recursive: true })
-      writeFileSync(file, `
-// ${filename}.ts
+      writeFileSync(file, `// ${filename}.ts
 import type { SchemaBuilder } from 'typed-pg'
 
 export function up(builder: SchemaBuilder) {

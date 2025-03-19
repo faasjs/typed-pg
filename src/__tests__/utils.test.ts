@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { escapeIdentifier, escapeValue } from '../utils'
+import { escapeIdentifier, escapeValue, rawSql } from '../utils'
 
 describe('escapeIdentifier', () => {
   it('escapes double quotes', () => {
@@ -29,6 +29,12 @@ describe('escapeIdentifier', () => {
 
   it('throws error for non-string values', () => {
     expect(() => escapeIdentifier(42 as any)).toThrowError('Identifier must be a string: 42')
+  })
+
+  it('handles raw SQL values', () => {
+    const raw = rawSql('SELECT * FROM users')
+    expect(escapeIdentifier(raw)).toBe('SELECT * FROM users')
+    expect((raw as any).__raw).toBe(true)
   })
 })
 
@@ -76,4 +82,17 @@ describe('escapeValue', () => {
     expect(() => escapeValue(undefined)).toThrowError('Unsupported value: undefined')
     expect(() => escapeValue(() => 1)).toThrowError('Unsupported value: () => 1')
   })
+
+  it('handles raw SQL values', () => {
+    const raw = rawSql('SELECT * FROM users')
+    expect(escapeValue(raw)).toBe('SELECT * FROM users')
+    expect((raw as any).__raw).toBe(true)
+  })
+})
+
+it('rawSql', () => {
+  const raw = rawSql('SELECT * FROM users')
+
+  expect(`${raw}`).toBe('SELECT * FROM users')
+  expect((raw as any).__raw).toBe(true)
 })

@@ -1,4 +1,9 @@
-export function escapeIdentifier(identifier: string): string {
+export type RawSql = string & { __raw: true }
+
+export function escapeIdentifier(identifier: string | RawSql): string {
+  if (identifier && typeof identifier === 'object' && '__raw' in identifier && (identifier as RawSql).__raw === true)
+    return (identifier as RawSql).toString()
+
   if (typeof identifier !== 'string')
     throw Error(`Identifier must be a string: ${identifier}`)
 
@@ -12,6 +17,10 @@ export function escapeIdentifier(identifier: string): string {
 }
 
 export function escapeValue(value: any): string {
+  if (value && typeof value === 'object' && '__raw' in value && value.__raw === true) {
+    return value.toString();
+  }
+
   if (value === null) {
     return 'NULL'
   }
@@ -43,6 +52,25 @@ export function escapeValue(value: any): string {
   }
 
   throw Error(`Unsupported value: ${value}`)
+}
+
+/**
+ * Creates a raw SQL value object.
+ *
+ * This function is used to mark a string as a raw SQL value, which can be useful
+ * when you need to include raw SQL in a query without any escaping or processing.
+ *
+ * @param value - The raw SQL string.
+ * @returns An object representing the raw SQL value with a custom `toString` method.
+ */
+export function rawSql(value: string): RawSql {
+  return Object.assign(
+    value,
+    {
+      __raw: true,
+      toString: () => value,
+    }
+  ) as RawSql
 }
 
 export function isTemplateStringsArray(value: any): value is TemplateStringsArray {
