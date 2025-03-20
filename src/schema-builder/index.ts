@@ -53,7 +53,13 @@ export class SchemaBuilder {
 
     if (!statements.length) return
 
-    await this.client.postgres.begin(async trx => await trx.call(trx, createTemplateStringsArray(statements.join("\n"))).simple())
+    const sql = statements.join("\n")
+
+    try {
+      await this.client.postgres.begin(async trx => await trx.call(trx, createTemplateStringsArray(sql)).simple())
+    } catch (error) {
+      throw new Error(`${error}\n\nSQL: ${sql}`)
+    }
 
     this.changes = []
   }
