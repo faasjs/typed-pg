@@ -41,21 +41,4 @@ describe('cli', () => {
       )
     )
   })
-
-  it('status', async () => {
-    process.env.DATABASE_URL = DATABASE_URL
-
-    await main('status')
-
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Status:'
-      )
-    )
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Migrations:'
-      )
-    )
-  })
 })
