@@ -475,9 +475,9 @@ export class QueryBuilder<
     options: { returning?: Returning } = {}
   ): Promise<
     Returning extends ['*']
-    ? TableType<T>
+    ? TableType<T>[]
     : Returning[number] extends keyof TableType<T>
-    ? Pick<TableType<T>, Returning[number]>
+    ? Pick<TableType<T>, Returning[number]>[]
     : Record<string, any>[]
   > {
     const valuesArray = Array.isArray(values) ? values : [values]
@@ -523,9 +523,9 @@ export class QueryBuilder<
     options: { returning?: Returning } = {}
   ): Promise<
     Returning extends ['*']
-    ? TableType<T>
+    ? TableType<T>[]
     : Returning[number] extends keyof TableType<T>
-    ? Pick<TableType<T>, Returning[number]>
+    ? Pick<TableType<T>, Returning[number]>[]
     : Record<string, any>[]
   > {
     const params: any[] = Object.values(values)
@@ -600,16 +600,22 @@ export class QueryBuilder<
    * await db('users').upsert({ id: 1, name: 'Alice' }, { conflict: ['id'], update: ['name'] }) // => []
    * ```
    */
-  async upsert<FirstValue extends Partial<TableType<T>>>(
+  async upsert<FirstValue extends Partial<TableType<T>>, Returning extends (keyof FirstValue)[] | ['*']>(
     values: FirstValue | [FirstValue, ...{
       [K in Extract<keyof FirstValue, string | ColumnName<T>>]: ColumnValue<T, K>
     }[]],
     options: {
       conflict: ColumnName<T>[]
       update?: (keyof FirstValue)[]
-      returning?: (keyof FirstValue)[] | ['*']
+      returning?: Returning
     }
-  ) {
+  ): Promise<
+    Returning extends ['*']
+    ? TableType<T>[]
+    : Returning[number] extends keyof TableType<T>
+    ? Pick<TableType<T>, Returning[number]>[]
+    : Record<string, any>[]
+  > {
     const valuesArray = Array.isArray(values) ? values : [values]
 
     const sql = [
