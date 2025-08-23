@@ -40,8 +40,11 @@
   "bin": {
     "typed-pg": "dist/cli/index.mjs"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
+    "typescript": "*",
     "postgres": "*",
     "tsx": "*",
     "tsup": "*",
