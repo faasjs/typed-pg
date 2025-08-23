@@ -299,7 +299,7 @@ export class TableBuilder {
       escapeIdentifier(name),
       def.type,
       def.nullable ? 'NULL' : 'NOT NULL',
-      def.defaultValue !== undefined ? `DEFAULT ${escapeValue(def.defaultValue)}` : null,
+      def.defaultValue !== undefined ? `DEFAULT ${escapeValue(def.defaultValue)}::${def.type}` : null,
       def.primary ? 'PRIMARY KEY' : null,
       def.unique ? 'UNIQUE' : null,
       def.references ?

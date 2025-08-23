@@ -1,6 +1,6 @@
-import { describe, it, expect, afterAll, beforeEach } from 'vitest'
-import { type Client, createClient } from '../../client'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createTestingPostgres } from '../../__tests__/utils'
+import { type Client, createClient } from '../../client'
 import { SchemaBuilder } from '..'
 
 describe('SchemaBuilder', () => {
@@ -20,11 +20,12 @@ describe('SchemaBuilder', () => {
 
     builder.createTable('creators', table => {
       table.string('string').primary().unique()
-      table.number('number')
-      table.boolean('boolean')
-      table.date('date')
-      table.json('json')
-      table.jsonb('jsonb')
+      table.number('number').defaultTo(0)
+      table.boolean('boolean').defaultTo(true)
+      table.date('date').defaultTo('now()')
+      table.json('json').defaultTo({})
+      table.jsonb('jsonb').defaultTo('{}')
+      table.jsonb('jsonb-list').defaultTo('[]')
       table.timestamp('timestamp')
       table.timestamptz('timestamptz')
       table.timestamps()
@@ -53,6 +54,7 @@ describe('SchemaBuilder', () => {
       { column_name: 'date', data_type: 'date' },
       { column_name: 'json', data_type: 'json' },
       { column_name: 'jsonb', data_type: 'jsonb' },
+      { column_name: 'jsonb-list', data_type: 'jsonb' },
       { column_name: 'timestamp', data_type: 'timestamp without time zone' },
       { column_name: 'timestamptz', data_type: 'timestamp with time zone' },
       {
