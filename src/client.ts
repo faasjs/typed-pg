@@ -64,7 +64,7 @@ export class Client {
    */
   async transaction<T>(fn: (client: Client) => Promise<T>) {
     return this.postgres.begin(async sql => {
-      const client = new Client(sql)
+      const client = new Client(sql as any)
       return fn(client)
     })
   }

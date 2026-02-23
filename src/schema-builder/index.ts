@@ -56,7 +56,7 @@ export class SchemaBuilder {
     const sql = statements.join("\n")
 
     try {
-      await this.client.postgres.begin(async trx => await trx.call(trx, createTemplateStringsArray(sql)).simple())
+      await this.client.postgres.begin(async trx => await (trx as any).call(trx, createTemplateStringsArray(sql)).simple())
     } catch (error) {
       throw new Error(`${error}\n\nSQL: ${sql}`)
     }

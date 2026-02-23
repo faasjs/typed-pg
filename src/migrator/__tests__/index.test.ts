@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { Migrator } from ".."
 import { Client, createClient } from "../../client"
 import { createTestingPostgres } from "../../__tests__/utils"
@@ -11,6 +11,10 @@ describe('Migrator', () => {
 
     await client.raw`DROP TABLE IF EXISTS typed_pg_migrations`
     await client.raw`DROP TABLE IF EXISTS migrations`
+  })
+
+  afterEach(async () => {
+    await client.quit()
   })
 
   it('should create migration table', async () => {

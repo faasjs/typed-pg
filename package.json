@@ -46,6 +46,8 @@
   "devDependencies": {
     "typescript": "*",
     "postgres": "*",
+    "@electric-sql/pglite": "*",
+    "@electric-sql/pglite-socket": "*",
     "tsx": "*",
     "tsup": "*",
     "faasjs": "*",

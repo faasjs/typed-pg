@@ -13,7 +13,7 @@ describe('cli', () => {
   })
 
   it('should throw error on failed database connection', async () => {
-    process.env.DATABASE_URL = 'postgres://invalid'
+    process.env.DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:1/template1?connect_timeout=1'
 
     await main()
 
@@ -25,7 +25,7 @@ describe('cli', () => {
 
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining(
-        'getaddrinfo ENOTFOUND invalid'
+        'ECONNREFUSED'
       )
     )
   })

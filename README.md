@@ -29,3 +29,7 @@ A type-safe PostgreSQL query builder for TypeScript with a fluent API.
 ```bash
 npm install typed-pg
 ```
+
+## Testing
+
+Tests run against a PGlite socket server started by Vitest global setup, so no external PostgreSQL service is required.
