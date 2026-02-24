@@ -1,5 +1,6 @@
 import type { Client } from './client'
 import type { ColumnName, ColumnValue, TableName, Tables, TableType } from './types'
+import type { RawSql } from './utils'
 import { escapeIdentifier } from './utils'
 
 const NormalOperators = ['=', '!=', '<', '<=', '>', '>='] as const
@@ -19,6 +20,41 @@ type Operator = (typeof Operators)[number]
 const QueryOrderDirections = ['ASC', 'DESC', 'asc', 'desc'] as const
 
 type QueryOrderDirection = (typeof QueryOrderDirections)[number]
+
+type WhereCondition<T extends TableName | string> =
+  | {
+    kind: 'column'
+    type: 'AND' | 'OR'
+    column: ColumnName<T> | string
+    operator: Operator
+    value: any
+  }
+  | {
+    kind: 'raw'
+    type: 'AND' | 'OR'
+    sql: string
+    params: any[]
+  }
+
+type OrderByCondition<T extends TableName | string> =
+  | {
+    type: 'column'
+    column: ColumnName<T> | string
+    direction: QueryOrderDirection
+  }
+  | {
+    type: 'raw'
+    sql: string
+    params: any[]
+  }
+
+type JoinCondition = {
+  type: 'INNER' | 'LEFT'
+  table: string | RawSql
+  left: string | RawSql
+  operator: (typeof NormalOperators)[number]
+  right: string | RawSql
+}
 
 type IsObject<T> = T extends object ? true : false
 
@@ -84,18 +120,11 @@ export class QueryBuilder<
   private client: Client
   private table: T
   private selectColumns: (ColumnName<T> | JsonSelectField<T>)[] = []
-  private whereConditions: {
-    type: 'AND' | 'OR'
-    column: ColumnName<T> | string
-    operator: Operator
-    value: any
-  }[] = []
+  private whereConditions: WhereCondition<T>[] = []
   private limitValue?: number
   private offsetValue?: number
-  private orderByColumns: {
-    column: ColumnName<T> | string
-    direction: QueryOrderDirection
-  }[] = []
+  private orderByConditions: OrderByCondition<T>[] = []
+  private joinConditions: JoinCondition[] = []
 
   constructor(client: Client, table: T) {
     this.client = client
@@ -169,6 +198,7 @@ export class QueryBuilder<
       !['IS NULL', 'IS NOT NULL'].includes(operatorOrValue)
     ) {
       this.whereConditions.push({
+        kind: 'column',
         type: 'AND',
         column,
         operator: '=',
@@ -182,6 +212,7 @@ export class QueryBuilder<
       throw new Error(`Invalid operator: ${operatorOrValue}`)
 
     this.whereConditions.push({
+      kind: 'column',
       type: 'AND',
       column,
       operator: operatorOrValue,
@@ -230,6 +261,7 @@ export class QueryBuilder<
       !['IS NULL', 'IS NOT NULL'].includes(operatorOrValue)
     ) {
       this.whereConditions.push({
+        kind: 'column',
         type: 'OR',
         column,
         operator: '=',
@@ -243,10 +275,39 @@ export class QueryBuilder<
       throw new Error(`Invalid operator: ${operatorOrValue}`)
 
     this.whereConditions.push({
+      kind: 'column',
       type: 'OR',
       column,
       operator: operatorOrValue,
       value,
+    })
+
+    return this
+  }
+
+  /**
+   * Adds a raw SQL expression to the WHERE clause with parameter bindings.
+   */
+  whereRaw(sql: string, ...params: any[]) {
+    this.whereConditions.push({
+      kind: 'raw',
+      type: 'AND',
+      sql,
+      params,
+    })
+
+    return this
+  }
+
+  /**
+   * Adds a raw SQL expression to the WHERE clause using OR with parameter bindings.
+   */
+  orWhereRaw(sql: string, ...params: any[]) {
+    this.whereConditions.push({
+      kind: 'raw',
+      type: 'OR',
+      sql,
+      params,
     })
 
     return this
@@ -300,7 +361,103 @@ export class QueryBuilder<
     if (!QueryOrderDirections.includes(direction))
       throw Error(`Invalid order direction: ${direction}`)
 
-    this.orderByColumns.push({ column, direction })
+    this.orderByConditions.push({
+      type: 'column',
+      column,
+      direction,
+    })
+
+    return this
+  }
+
+  /**
+   * Adds a raw SQL expression to ORDER BY with parameter bindings.
+   */
+  orderByRaw(sql: string, ...params: any[]) {
+    this.orderByConditions.push({
+      type: 'raw',
+      sql,
+      params,
+    })
+
+    return this
+  }
+
+  /**
+   * Adds an INNER JOIN clause.
+   */
+  join(
+    table: string | RawSql,
+    left: string | RawSql,
+    right: string | RawSql
+  ): QueryBuilder<T, TResult>
+  join(
+    table: string | RawSql,
+    left: string | RawSql,
+    operator: (typeof NormalOperators)[number],
+    right: string | RawSql
+  ): QueryBuilder<T, TResult>
+  join(
+    table: string | RawSql,
+    left: string | RawSql,
+    operatorOrRight: (typeof NormalOperators)[number] | string | RawSql,
+    right?: string | RawSql
+  ) {
+    return this.addJoin('INNER', table, left, operatorOrRight, right)
+  }
+
+  /**
+   * Adds a LEFT JOIN clause.
+   */
+  leftJoin(
+    table: string | RawSql,
+    left: string | RawSql,
+    right: string | RawSql
+  ): QueryBuilder<T, TResult>
+  leftJoin(
+    table: string | RawSql,
+    left: string | RawSql,
+    operator: (typeof NormalOperators)[number],
+    right: string | RawSql
+  ): QueryBuilder<T, TResult>
+  leftJoin(
+    table: string | RawSql,
+    left: string | RawSql,
+    operatorOrRight: (typeof NormalOperators)[number] | string | RawSql,
+    right?: string | RawSql
+  ) {
+    return this.addJoin('LEFT', table, left, operatorOrRight, right)
+  }
+
+  private addJoin(
+    type: 'INNER' | 'LEFT',
+    table: string | RawSql,
+    left: string | RawSql,
+    operatorOrRight: (typeof NormalOperators)[number] | string | RawSql,
+    right?: string | RawSql
+  ) {
+    if (typeof right === 'undefined') {
+      this.joinConditions.push({
+        type,
+        table,
+        left,
+        operator: '=',
+        right: operatorOrRight as string | RawSql,
+      })
+
+      return this
+    }
+
+    if (!NormalOperators.includes(operatorOrRight as (typeof NormalOperators)[number]))
+      throw new Error(`Invalid join operator: ${operatorOrRight}`)
+
+    this.joinConditions.push({
+      type,
+      table,
+      left,
+      operator: operatorOrRight as (typeof NormalOperators)[number],
+      right,
+    })
 
     return this
   }
@@ -313,8 +470,15 @@ export class QueryBuilder<
       sql.push(
         'WHERE',
         this.whereConditions
-          .map(({ type, column, operator, value }, index) => {
-            const prefix = index > 0 ? `${type} ` : ''
+          .map((condition, index) => {
+            const prefix = index > 0 ? `${condition.type} ` : ''
+
+            if (condition.kind === 'raw') {
+              params.push(...condition.params)
+              return `${prefix}(${condition.sql})`
+            }
+
+            const { column, operator, value } = condition
 
             if (operator === 'IS NULL' || operator === 'IS NOT NULL')
               return `${prefix}${escapeIdentifier(column)} ${operator}`
@@ -342,6 +506,12 @@ export class QueryBuilder<
     }
   }
 
+  private buildJoinSql() {
+    return this.joinConditions
+      .map(condition => `${condition.type === 'LEFT' ? 'LEFT JOIN' : 'JOIN'} ${escapeIdentifier(condition.table)} ON ${escapeIdentifier(condition.left)} ${condition.operator} ${escapeIdentifier(condition.right)}`)
+      .join(' ')
+  }
+
   toSql() {
     const sql = ['SELECT']
     const params: any[] = []
@@ -352,19 +522,31 @@ export class QueryBuilder<
     // Add table
     sql.push('FROM', escapeIdentifier(this.table))
 
+    // Add join conditions
+    const joinSql = this.buildJoinSql()
+    if (joinSql) sql.push(joinSql)
+
     // Add where conditions
     const { sql: whereSql, params: whereParams } = this.buildWhereSql()
     sql.push(whereSql)
     params.push(...whereParams)
 
     // Add order by
-    if (this.orderByColumns.length > 0)
+    if (this.orderByConditions.length > 0) {
       sql.push(
         'ORDER BY',
-        this.orderByColumns
-          .map(({ column, direction }) => `${escapeIdentifier(column)} ${direction}`)
+        this.orderByConditions
+          .map(condition => {
+            if (condition.type === 'raw') {
+              params.push(...condition.params)
+              return condition.sql
+            }
+
+            return `${escapeIdentifier(condition.column)} ${condition.direction}`
+          })
           .join(',')
       )
+    }
 
     // Add limit and offset
     if (this.limitValue) {
@@ -416,6 +598,9 @@ export class QueryBuilder<
     const params: any[] = []
 
     sql.push('FROM', escapeIdentifier(this.table))
+
+    const joinSql = this.buildJoinSql()
+    if (joinSql) sql.push(joinSql)
 
     const { sql: whereSql, params: whereParams } = this.buildWhereSql()
     sql.push(whereSql)

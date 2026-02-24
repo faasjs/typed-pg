@@ -19,11 +19,25 @@ describe('QueryBuilder/query', () => {
     `
 
     await client.raw`
+      CREATE TABLE query_profile (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        bio TEXT
+      );
+    `
+
+    await client.raw`
       INSERT INTO query (id, name, metadata) VALUES (1, 'Alice', '{"age":100}'), (2, 'Bob', '{}');
+    `
+
+    await client.raw`
+      INSERT INTO query_profile (id, user_id, bio) VALUES (1, 1, 'Alice bio'), (2, 3, 'Ghost bio');
     `
   })
 
   afterAll(async () => {
+    await client.raw`DROP TABLE query_profile`
+
     await client.raw`DROP TABLE query`
 
     await client.quit()
@@ -199,6 +213,25 @@ describe('QueryBuilder/query', () => {
     })
   })
 
+  describe('whereRaw', () => {
+    it('works with params', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .whereRaw('"name" = ?', 'Alice')
+        .pluck('id')
+
+      expect(result).toEqual([1])
+    })
+
+    it('works with where', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .where('id', '>', 1)
+        .whereRaw('"name" = ?', 'Bob')
+        .pluck('id')
+
+      expect(result).toEqual([2])
+    })
+  })
+
   describe('orWhere', () => {
     it('column and value', async () => {
       const result = await new QueryBuilder(client, 'query')
@@ -222,6 +255,18 @@ describe('QueryBuilder/query', () => {
       const result = await new QueryBuilder(client, 'query')
         .where('name', 'Alice')
         .orWhere('id', '>', 1)
+        .pluck('id')
+
+      expect(result).toEqual([1, 2])
+    })
+  })
+
+  describe('orWhereRaw', () => {
+    it('works with params', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .where('name', 'Alice')
+        .orWhereRaw('"id" = ?', 2)
+        .orderBy('id', 'ASC')
         .pluck('id')
 
       expect(result).toEqual([1, 2])
@@ -336,6 +381,61 @@ describe('QueryBuilder/query', () => {
         .pluck('id')
 
       expect(result).toEqual([1])
+    })
+  })
+
+  describe('orderByRaw', () => {
+    it('orders by raw expression', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .orderByRaw('CASE WHEN "name" = ? THEN 0 ELSE 1 END', 'Bob')
+        .pluck('name')
+
+      expect(result).toEqual(['Bob', 'Alice'])
+    })
+
+    it('works with limit', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .orderByRaw('CASE WHEN "name" = ? THEN 0 ELSE 1 END', 'Bob')
+        .limit(1)
+        .pluck('name')
+
+      expect(result).toEqual(['Bob'])
+    })
+  })
+
+  describe('join', () => {
+    it('uses default operator', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .join('query_profile', 'query.id', 'query_profile.user_id')
+        .count()
+
+      expect(result).toEqual(1)
+    })
+
+    it('supports custom operator', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .join('query_profile', 'query.id', '>', 'query_profile.user_id')
+        .count()
+
+      expect(result).toEqual(1)
+    })
+
+    it('throws error for invalid operator', () => {
+      expect(() =>
+        new QueryBuilder(client, 'query')
+          .join('query_profile', 'query.id', 'invalid' as any, 'query_profile.user_id')
+      ).toThrowError('Invalid join operator: invalid')
+    })
+  })
+
+  describe('leftJoin', () => {
+    it('keeps unmatched rows', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .leftJoin('query_profile', 'query.id', 'query_profile.user_id')
+        .whereRaw('"query_profile"."id" IS NULL')
+        .count()
+
+      expect(result).toEqual(1)
     })
   })
 })
