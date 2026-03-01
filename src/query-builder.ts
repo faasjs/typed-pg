@@ -7,11 +7,13 @@ const NormalOperators = ['=', '!=', '<', '<=', '>', '>='] as const
 const ArrayOperators = ['IN', 'NOT IN'] as const
 const NullOperators = ['IS NULL', 'IS NOT NULL'] as const
 const JsonOperators = ['@>'] as const
+const PatternOperators = ['LIKE', 'ILIKE', 'NOT LIKE', 'NOT ILIKE'] as const
 
 const Operators = [
   ...NormalOperators,
   ...ArrayOperators,
   ...NullOperators,
+  ...PatternOperators,
   ...JsonOperators,
 ] as const
 
@@ -185,6 +187,11 @@ export class QueryBuilder<
   ): QueryBuilder<T, TResult>
   where<C extends ColumnName<T>>(
     column: C,
+    operator: (typeof PatternOperators)[number],
+    value: ColumnValue<T, C>
+  ): QueryBuilder<T, TResult>
+  where<C extends ColumnName<T>>(
+    column: C,
     operator: (typeof JsonOperators)[number],
     value: Partial<ColumnValue<T, C>>
   ): QueryBuilder<T, TResult>
@@ -245,6 +252,11 @@ export class QueryBuilder<
   orWhere<C extends ColumnName<T>>(
     column: C,
     operator: (typeof NullOperators)[number]
+  ): QueryBuilder<T, TResult>
+  orWhere<C extends ColumnName<T>>(
+    column: C,
+    operator: (typeof PatternOperators)[number],
+    value: ColumnValue<T, C>
   ): QueryBuilder<T, TResult>
   orWhere<C extends ColumnName<T>>(
     column: C,

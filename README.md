@@ -21,6 +21,7 @@ A type-safe PostgreSQL query builder for TypeScript with a fluent API.
 - ⚡ Built on top of the high-performance `postgres.js` package
 - 🔗 Fluent chainable API
 - 🧩 Flexible SQL fragments: `whereRaw`, `orWhereRaw`, `orderByRaw`
+- 🔍 Pattern matching operators in `where`: `LIKE`, `ILIKE`, `NOT LIKE`, `NOT ILIKE`
 - 🔀 Join helpers: `join` and `leftJoin` with Knex-style arguments
 - 🛡️ SQL injection prevention
 - 📦 Transaction support
@@ -32,6 +33,7 @@ A type-safe PostgreSQL query builder for TypeScript with a fluent API.
 await client
   .query('users')
   .join('profiles', 'users.id', 'profiles.user_id')
+  .where('users.name', 'ILIKE', 'alice%')
   .whereRaw('"profiles"."deleted_at" IS NULL')
   .orWhereRaw('"users"."is_admin" = ?', true)
   .orderByRaw('CASE WHEN "users"."status" = ? THEN 0 ELSE 1 END', 'active')

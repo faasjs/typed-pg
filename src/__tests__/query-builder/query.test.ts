@@ -186,6 +186,38 @@ describe('QueryBuilder/query', () => {
         expect(result).toEqual([2])
       })
 
+      it('LIKE', async () => {
+        const result = await new QueryBuilder(client, 'query')
+          .where('name', 'LIKE', 'A%')
+          .pluck('id')
+
+        expect(result).toEqual([1])
+      })
+
+      it('ILIKE', async () => {
+        const result = await new QueryBuilder(client, 'query')
+          .where('name', 'ILIKE', 'a%')
+          .pluck('id')
+
+        expect(result).toEqual([1])
+      })
+
+      it('NOT LIKE', async () => {
+        const result = await new QueryBuilder(client, 'query')
+          .where('name', 'NOT LIKE', 'A%')
+          .pluck('id')
+
+        expect(result).toEqual([2])
+      })
+
+      it('NOT ILIKE', async () => {
+        const result = await new QueryBuilder(client, 'query')
+          .where('name', 'NOT ILIKE', 'a%')
+          .pluck('id')
+
+        expect(result).toEqual([2])
+      })
+
       it('@>', async () => {
         const result = await new QueryBuilder(client, 'query')
           .where('metadata', '@>', { age: 100 })
@@ -255,6 +287,16 @@ describe('QueryBuilder/query', () => {
       const result = await new QueryBuilder(client, 'query')
         .where('name', 'Alice')
         .orWhere('id', '>', 1)
+        .pluck('id')
+
+      expect(result).toEqual([1, 2])
+    })
+
+    it('supports ILIKE operator', async () => {
+      const result = await new QueryBuilder(client, 'query')
+        .where('name', 'Bob')
+        .orWhere('name', 'ILIKE', 'a%')
+        .orderBy('id', 'ASC')
         .pluck('id')
 
       expect(result).toEqual([1, 2])
