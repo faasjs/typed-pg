@@ -147,7 +147,7 @@ export class QueryBuilder<
    */
   select<ColumnNames extends (ColumnName<T> | JsonSelectField<T>)[]>(
     ...columns: ColumnNames
-  ): QueryBuilder<T, InferTResult<T, ColumnNames>> {
+  ): QueryBuilder<T, InferTResult<T, ColumnNames>[]> {
     if (columns?.length > 0) this.selectColumns = columns
 
     return this as any

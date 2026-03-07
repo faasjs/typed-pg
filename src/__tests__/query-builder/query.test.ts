@@ -64,7 +64,7 @@ describe('QueryBuilder/query', () => {
       const result = await new QueryBuilder(client, 'query').select('name')
 
       expect(result).toEqual([{ name: 'Alice' }, { name: 'Bob' }])
-      expectTypeOf(result).toEqualTypeOf<Pick<User, 'name'>>()
+      expectTypeOf(result).toEqualTypeOf<Pick<User, 'name'>[]>()
     })
 
     it('selects multiple columns', async () => {
@@ -74,7 +74,7 @@ describe('QueryBuilder/query', () => {
         { name: 'Alice', metadata: { age: 100 } },
         { name: 'Bob', metadata: {} },
       ])
-      expectTypeOf(result).toEqualTypeOf<Pick<User, 'name' | 'metadata'>>()
+      expectTypeOf(result).toEqualTypeOf<Pick<User, 'name' | 'metadata'>[]>()
     })
 
     it('select jsonb', async () => {
@@ -91,7 +91,7 @@ describe('QueryBuilder/query', () => {
       ])
       expectTypeOf(result).toEqualTypeOf<{
         metadata: Pick<User['metadata'], 'age'>
-      }>()
+      }[]>()
     })
   })
 
