@@ -34,6 +34,11 @@ export class SchemaBuilder {
     return this
   }
 
+  raw(sql: string) {
+    this.changes.push(sql)
+    return this
+  }
+
   toSQL(): string[] {
     const statements: string[] = []
 

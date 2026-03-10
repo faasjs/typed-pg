@@ -9,6 +9,7 @@ describe('SchemaBuilder', () => {
   beforeEach(async () => {
     await client.raw('DROP TABLE IF EXISTS creators')
     await client.raw('DROP TABLE IF EXISTS alters')
+    await client.raw('DROP TABLE IF EXISTS raws')
   })
 
   afterAll(async () => {
@@ -211,6 +212,39 @@ describe('SchemaBuilder', () => {
     builder.dropTable('creators')
 
     await builder.run()
+
+    const tables = await client.raw(
+      'SELECT * FROM information_schema.tables WHERE table_name = ?',
+      'creators'
+    )
+
+    expect(tables).toHaveLength(0)
+  })
+
+  it('raw', async () => {
+    const builder = new SchemaBuilder(client)
+
+    builder.raw('CREATE TABLE raws ("id" varchar NOT NULL PRIMARY KEY);')
+
+    await builder.run()
+
+    const tables = await client.raw(
+      'SELECT * FROM information_schema.tables WHERE table_name = ?',
+      'raws'
+    )
+
+    expect(tables[0]).toMatchObject({ table_name: 'raws' })
+  })
+
+  it('rolls back raw failures with previous schema changes', async () => {
+    const builder = new SchemaBuilder(client)
+
+    builder.createTable('creators', table => {
+      table.string('id').primary()
+    })
+    builder.raw('THIS IS NOT SQL;')
+
+    await expect(builder.run()).rejects.toThrowError('SQL:')
 
     const tables = await client.raw(
       'SELECT * FROM information_schema.tables WHERE table_name = ?',
