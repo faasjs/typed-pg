@@ -1,5 +1,14 @@
+/**
+ * Trusted SQL fragment marker used to bypass identifier or value escaping.
+ */
 export type RawSql = string & { __raw: true }
 
+/**
+ * Escapes a SQL identifier, preserving trusted {@link RawSql} fragments.
+ *
+ * @param identifier - Table name, column name, dotted identifier, or trusted raw fragment.
+ * @returns Escaped identifier string ready to be embedded into SQL text.
+ */
 export function escapeIdentifier(identifier: string | RawSql): string {
   if (
     identifier &&
@@ -19,6 +28,14 @@ export function escapeIdentifier(identifier: string | RawSql): string {
     .replace(/"COUNT\(\*\)"/i, 'COUNT(*)')
 }
 
+/**
+ * Escapes a literal value for inline SQL generation.
+ *
+ * Prefer bound parameters for runtime values whenever possible.
+ *
+ * @param value - Value to serialize into SQL text.
+ * @returns SQL literal representation of the value.
+ */
 export function escapeValue(value: any): string {
   if (value && typeof value === 'object' && '__raw' in value && value.__raw === true) {
     return value.toString()
@@ -73,10 +90,19 @@ export function rawSql(value: string): RawSql {
   }) as RawSql
 }
 
+/**
+ * Checks whether a value is a `TemplateStringsArray`.
+ */
 export function isTemplateStringsArray(value: any): value is TemplateStringsArray {
   return Array.isArray(value) && typeof value[0] === 'string' && 'raw' in value
 }
 
+/**
+ * Normalizes a SQL string or template input into a `TemplateStringsArray`.
+ *
+ * @param str - SQL source string or template literal array.
+ * @returns Template-strings representation compatible with `postgres.js`.
+ */
 export function createTemplateStringsArray(
   str: string | TemplateStringsArray,
 ): TemplateStringsArray {

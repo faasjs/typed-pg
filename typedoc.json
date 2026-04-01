@@ -1,0 +1,16 @@
+{
+  "excludePrivate": true,
+  "excludeExternals": true,
+  "exclude": ["**/__tests__/**", "**/*.test.ts", "**/*.test.tsx", "**/dist/**", "test-utils/**"],
+  "plugin": ["typedoc-plugin-markdown"],
+  "groupOrder": ["Functions", "Classes", "Interfaces", "Type Aliases", "Variables", "*"],
+  "githubPages": false,
+  "cleanOutputDir": false,
+  "disableSources": true,
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "readme": "none",
+  "hidePageHeader": true,
+  "mergeReadme": true
+}

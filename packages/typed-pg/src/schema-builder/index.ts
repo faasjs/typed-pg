@@ -2,6 +2,11 @@ import type { Client } from '../client'
 import { createTemplateStringsArray, escapeIdentifier } from '../utils'
 import { TableBuilder } from './table-builder'
 
+/**
+ * Builds and executes schema changes against a {@link Client}.
+ *
+ * Accumulated statements are executed in a single transaction by {@link run}.
+ */
 export class SchemaBuilder {
   private client: Client
   private changes: (string | TableBuilder)[] = []

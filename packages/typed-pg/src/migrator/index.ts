@@ -10,7 +10,6 @@ import { SchemaBuilder } from '../schema-builder'
  * The `Migrator` class is responsible for handling database migrations.
  * It provides methods to check migration status, apply migrations, and roll back migrations.
  *
- * @constructor
  * @param {Object} options - The options for the migrator.
  * @param {Client} options.client - The database client.
  * @param {string} options.folder - The folder containing migration files.

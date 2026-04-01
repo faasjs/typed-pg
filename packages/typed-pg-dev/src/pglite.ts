@@ -5,6 +5,9 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
 
 import { DEFAULT_DATABASE_URL_ENV } from './postgres'
 
+/**
+ * Options for building a PostgreSQL connection string for a started PGlite server.
+ */
 export interface CreatePGliteDatabaseUrlOptions {
   database?: string
   password?: string
@@ -12,16 +15,25 @@ export interface CreatePGliteDatabaseUrlOptions {
   username?: string
 }
 
+/**
+ * Options for starting the PGlite socket server used in local development and tests.
+ */
 export interface StartPGliteServerOptions extends CreatePGliteDatabaseUrlOptions {
   dataDir?: string
   host?: string
   port?: number
 }
 
+/**
+ * Options for creating a Vitest global setup around a temporary PGlite server.
+ */
 export interface CreateVitestSetupOptions extends StartPGliteServerOptions {
   envName?: string
 }
 
+/**
+ * Started PGlite server handle returned by {@link startPGliteServer}.
+ */
 export interface StartedPGliteServer {
   databaseUrl: string
   db: PGlite
@@ -48,6 +60,13 @@ function parseServerConn(serverConn: string) {
   }
 }
 
+/**
+ * Creates a PostgreSQL connection string for the running PGlite socket server.
+ *
+ * @param {string} serverConn - Socket server address in `host:port` form.
+ * @param {CreatePGliteDatabaseUrlOptions} [options] - Connection-string overrides.
+ * @returns PostgreSQL connection string for the started PGlite server.
+ */
 export function createPGliteDatabaseUrl(
   serverConn: string,
   options: CreatePGliteDatabaseUrlOptions = {},
@@ -69,6 +88,12 @@ export function createPGliteDatabaseUrl(
   return url.toString()
 }
 
+/**
+ * Starts a temporary PGlite socket server and returns its lifecycle handle.
+ *
+ * @param {StartPGliteServerOptions} [options] - Optional server and connection configuration.
+ * @returns Started server handle with a `stop()` method.
+ */
 export async function startPGliteServer(
   options: StartPGliteServerOptions = {},
 ): Promise<StartedPGliteServer> {
@@ -105,6 +130,15 @@ export async function startPGliteServer(
   }
 }
 
+/**
+ * Creates a Vitest `globalSetup` function backed by a temporary PGlite server.
+ *
+ * The setup stores the generated connection string in `DATABASE_URL` by default and restores the
+ * previous environment value during teardown.
+ *
+ * @param {CreateVitestSetupOptions} [options] - Optional server and environment configuration.
+ * @returns Vitest-compatible async global setup function.
+ */
 export function createVitestSetup(options: CreateVitestSetupOptions = {}) {
   return async function globalSetup() {
     const envName = options.envName ?? DEFAULT_DATABASE_URL_ENV

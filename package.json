@@ -9,12 +9,16 @@
   "scripts": {
     "test": "vp test run",
     "ci": "vp test run --silent --coverage",
+    "doc": "node build-docs.ts && node sync-skill-references.ts && vp check --fix",
     "build": "vp pack",
     "check": "vp check",
     "clean": "rm -rf packages/*/node_modules packages/*/dist coverage tmp *.log test-report.junit.xml",
     "prepare": "vp config"
   },
   "devDependencies": {
+    "@types/node": "*",
+    "typedoc": "*",
+    "typedoc-plugin-markdown": "*",
     "vite-plus": "*"
   },
   "overrides": {

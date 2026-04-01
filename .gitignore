@@ -4,3 +4,4 @@ packages/*/dist
 coverage
 *.xml
 .vite-hooks/_
+tmp
