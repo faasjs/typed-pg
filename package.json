@@ -1,68 +1,29 @@
 {
-  "name": "typed-pg",
-  "description": "A type-safe PostgreSQL query builder for TypeScript with a fluent API.",
-  "keywords": [
-    "typescript",
-    "postgresql",
-    "query",
-    "builder",
-    "fluent",
-    "api",
-    "type-safe"
-  ],
+  "name": "typed-pg-mono",
   "version": "1.0.0",
-  "license": "MIT",
-  "type": "module",
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "homepage": "https://github.com/faasjs/typed-pg",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/faasjs/typed-pg.git"
-  },
-  "bugs": {
-    "url": "https://github.com/faasjs/typed-pg/issues"
-  },
-  "funding": "https://github.com/sponsors/faasjs",
-  "scripts": {
-    "build": "tsup-node --config tsup.config.ts",
-    "test": "vitest --run",
-    "ci": "vitest run --silent --coverage"
-  },
-  "bin": {
-    "typed-pg": "dist/cli/index.mjs"
-  },
-  "files": [
-    "dist"
+  "private": true,
+  "workspaces": [
+    "packages/*"
   ],
-  "devDependencies": {
-    "typescript": "*",
-    "postgres": "*",
-    "@electric-sql/pglite": "*",
-    "@electric-sql/pglite-socket": "*",
-    "tsx": "*",
-    "tsup": "*",
-    "faasjs": "*",
-    "@faasjs/lint": "*",
-    "vitest": "*",
-    "@types/node": "*",
-    "@vitest/coverage-v8": "*"
+  "type": "module",
+  "scripts": {
+    "test": "vp test run",
+    "ci": "vp test run --silent --coverage",
+    "build": "vp pack",
+    "check": "vp check",
+    "clean": "rm -rf packages/*/node_modules packages/*/dist coverage tmp *.log test-report.junit.xml",
+    "prepare": "vp config"
   },
-  "peerDependencies": {
-    "postgres": "*",
-    "tsx": "*",
-    "@faasjs/logger": "*"
+  "devDependencies": {
+    "vite-plus": "*"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core",
+    "vitest": "npm:@voidzero-dev/vite-plus-test"
   },
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"
-  }
+  },
+  "packageManager": "npm@11.11.0"
 }

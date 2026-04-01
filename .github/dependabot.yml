@@ -8,12 +8,12 @@ updates:
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: "daily"
-  - package-ecosystem: "npm"
-    directory: "/"
+      interval: 'daily'
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "daily"
-  - package-ecosystem: "devcontainers"
+      interval: 'daily'
+  - package-ecosystem: 'devcontainers'
     directory: /
     schedule:
-      interval: "daily"
+      interval: 'daily'

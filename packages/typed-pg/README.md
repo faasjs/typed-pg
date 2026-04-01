@@ -1,8 +1,5 @@
 # typed-pg
 
-This repository is managed as a `vite-plus` workspace.
-The published package and all source code now live in `packages/typed-pg`.
-
 [![License: MIT](https://img.shields.io/npm/l/typed-pg.svg)](https://github.com/faasjs/typed-pg/blob/main/LICENSE)
 [![NPM Version](https://img.shields.io/npm/v/typed-pg.svg)](https://www.npmjs.com/package/typed-pg)
 [![Last commit](https://img.shields.io/github/last-commit/faasjs/typed-pg)](https://github.com/faasjs/typed-pg)

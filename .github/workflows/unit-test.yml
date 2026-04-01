@@ -6,11 +6,21 @@ on:
     branches:
       - main
     paths:
-      - src/**
+      - packages/typed-pg/**
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - tsconfig.json
+      - tsconfig.build.json
       - .github/workflows/unit-test.yml
   pull_request:
     paths:
-      - src/**
+      - packages/typed-pg/**
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - tsconfig.json
+      - tsconfig.build.json
 
 jobs:
   unit-test:

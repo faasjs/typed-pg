@@ -1,0 +1,105 @@
+import { join } from 'node:path'
+
+import { defineConfig, type UserConfig } from 'vite-plus'
+import type { PackUserConfig } from 'vite-plus/pack'
+
+const pack: PackUserConfig[] = [
+  {
+    cwd: join(process.cwd(), 'packages', 'typed-pg'),
+    entry: {
+      index: './src/index.ts',
+      'cli/index': './src/cli/index.ts',
+    },
+    platform: 'node',
+    format: ['esm', 'cjs'],
+    checks: {
+      legacyCjs: false,
+    },
+    clean: true,
+    dts: {
+      sourcemap: false,
+      eager: true,
+    },
+    deps: {
+      skipNodeModulesBundle: true,
+    },
+    sourcemap: false,
+    treeshake: true,
+    tsconfig: join(process.cwd(), 'tsconfig.build.json'),
+    shims: true,
+    outExtensions({ format }) {
+      if (format === 'es') {
+        return {
+          js: '.mjs',
+          dts: '.d.ts',
+        }
+      }
+
+      return {
+        js: '.cjs',
+        dts: '.d.ts',
+      }
+    },
+  },
+]
+
+const ignorePatterns = ['**/dist/**', 'node_modules/**', 'coverage/**']
+
+export default defineConfig({
+  staged: {
+    '*': 'npx vp check --fix',
+  },
+  resolve: {
+    tsconfigPaths: true,
+  },
+  fmt: {
+    ignorePatterns,
+    semi: false,
+    singleQuote: true,
+    sortImports: {},
+  },
+  lint: {
+    ignorePatterns,
+    plugins: ['typescript', 'node', 'vitest', 'import', 'eslint'],
+    env: {
+      builtin: true,
+      node: true,
+    },
+    settings: {
+      vitest: {
+        typecheck: true,
+      },
+    },
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+    rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'typescript/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'separate-type-imports',
+        },
+      ],
+    },
+  },
+  pack,
+  test: {
+    globalSetup: ['packages/typed-pg/src/__tests__/global-setup.ts'],
+    fileParallelism: false,
+    restoreMocks: true,
+    clearMocks: true,
+    typecheck: {
+      enabled: true,
+    },
+    coverage: {
+      provider: 'v8',
+      include: ['packages/**/*.ts'],
+      exclude: ['packages/**/__tests__/**', 'packages/**/dist/**', 'packages/**/test-utils/**'],
+      reporter: ['text', 'lcov', 'html'],
+    },
+    reporters: ['default', ['junit', { outputFile: 'test-report.junit.xml' }]],
+  },
+} as UserConfig)

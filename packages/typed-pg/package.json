@@ -1,0 +1,62 @@
+{
+  "name": "typed-pg",
+  "version": "1.0.0",
+  "description": "A type-safe PostgreSQL query builder for TypeScript with a fluent API.",
+  "keywords": [
+    "api",
+    "builder",
+    "fluent",
+    "postgresql",
+    "query",
+    "type-safe",
+    "typescript"
+  ],
+  "homepage": "https://github.com/faasjs/typed-pg",
+  "bugs": {
+    "url": "https://github.com/faasjs/typed-pg/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/faasjs/typed-pg.git",
+    "directory": "packages/typed-pg"
+  },
+  "funding": "https://github.com/sponsors/faasjs",
+  "bin": {
+    "typed-pg": "dist/cli/index.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "*",
+    "@electric-sql/pglite-socket": "*",
+    "@faasjs/logger": "*",
+    "@types/node": "*",
+    "@vitest/coverage-v8": "*",
+    "postgres": "*",
+    "tsx": "*",
+    "typescript": "*",
+    "vitest": "*"
+  },
+  "peerDependencies": {
+    "@faasjs/logger": "*",
+    "postgres": "*",
+    "tsx": "*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  }
+}

@@ -2,8 +2,10 @@
   "editor.detectIndentation": false,
   "editor.tabSize": 2,
   "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit"
+    "source.fixAll.oxc": "explicit"
   },
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSaveMode": "file",
   "editor.quickSuggestions": {
     "strings": "on"
   },
@@ -12,6 +14,7 @@
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
+  "oxc.fmt.configPath": "./vite.config.ts",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.inlayHints.parameterNames.enabled": "all",
   "cSpell.words": [
@@ -26,6 +29,7 @@
     "Supa",
     "supabase",
     "tarotjourney",
+    "viteplus",
     "vitest",
     "zfben"
   ]

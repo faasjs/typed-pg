@@ -1,3 +1,0 @@
-{
-	"extends": ["@faasjs/lint/biome"]
-}
