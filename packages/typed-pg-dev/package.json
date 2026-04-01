@@ -1,0 +1,59 @@
+{
+  "name": "typed-pg-dev",
+  "version": "1.0.0",
+  "description": "PGlite-powered development and testing helpers for typed-pg.",
+  "keywords": [
+    "development",
+    "pglite",
+    "postgresql",
+    "testing",
+    "typed-pg",
+    "typescript",
+    "vitest"
+  ],
+  "homepage": "https://github.com/faasjs/typed-pg",
+  "bugs": {
+    "url": "https://github.com/faasjs/typed-pg/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/faasjs/typed-pg.git",
+    "directory": "packages/typed-pg-dev"
+  },
+  "funding": "https://github.com/sponsors/faasjs",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./vitest": {
+      "types": "./dist/vitest.d.ts",
+      "import": "./dist/vitest.mjs",
+      "require": "./dist/vitest.cjs"
+    }
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "*",
+    "@electric-sql/pglite-socket": "*",
+    "postgres": "*"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "@vitest/coverage-v8": "*",
+    "typescript": "*",
+    "vitest": "*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  }
+}
