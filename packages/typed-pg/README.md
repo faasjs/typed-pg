@@ -45,6 +45,30 @@ await client
 npm install typed-pg
 ```
 
+For development and tests, pair it with `typed-pg-dev`:
+
+```bash
+npm install -D typed-pg-dev
+```
+
 ## Testing
 
-Tests run against a PGlite socket server started by Vitest global setup, so no external PostgreSQL service is required.
+Tests can run against a PGlite socket server started by `typed-pg-dev`, so no
+external PostgreSQL service is required.
+
+```ts
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    globalSetup: ['typed-pg-dev/vitest'],
+  },
+})
+```
+
+```ts
+import { createClient } from 'typed-pg'
+import { createTestingPostgres } from 'typed-pg-dev'
+
+const client = createClient(createTestingPostgres())
+```

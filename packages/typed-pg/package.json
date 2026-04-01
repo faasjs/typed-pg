@@ -40,8 +40,6 @@
     }
   },
   "devDependencies": {
-    "@electric-sql/pglite": "*",
-    "@electric-sql/pglite-socket": "*",
     "@faasjs/logger": "*",
     "@types/node": "*",
     "@vitest/coverage-v8": "*",

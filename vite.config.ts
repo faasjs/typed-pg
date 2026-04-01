@@ -41,6 +41,43 @@ const pack: PackUserConfig[] = [
       }
     },
   },
+  {
+    cwd: join(process.cwd(), 'packages', 'typed-pg-dev'),
+    entry: {
+      index: './src/index.ts',
+      vitest: './src/vitest.ts',
+    },
+    platform: 'node',
+    format: ['esm', 'cjs'],
+    checks: {
+      legacyCjs: false,
+    },
+    clean: true,
+    dts: {
+      sourcemap: false,
+      eager: true,
+    },
+    deps: {
+      skipNodeModulesBundle: true,
+    },
+    sourcemap: false,
+    treeshake: true,
+    tsconfig: join(process.cwd(), 'tsconfig.build.json'),
+    shims: true,
+    outExtensions({ format }) {
+      if (format === 'es') {
+        return {
+          js: '.mjs',
+          dts: '.d.ts',
+        }
+      }
+
+      return {
+        js: '.cjs',
+        dts: '.d.ts',
+      }
+    },
+  },
 ]
 
 const ignorePatterns = ['**/dist/**', 'node_modules/**', 'coverage/**']
@@ -87,7 +124,7 @@ export default defineConfig({
   },
   pack,
   test: {
-    globalSetup: ['packages/typed-pg/src/__tests__/global-setup.ts'],
+    globalSetup: ['packages/typed-pg-dev/src/vitest.ts'],
     fileParallelism: false,
     restoreMocks: true,
     clearMocks: true,
