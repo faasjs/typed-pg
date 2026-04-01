@@ -20,6 +20,5 @@
     "sourceMap": true,
     "noEmit": true,
     "types": ["node"]
-  },
-  "include": ["packages/**/*.ts", "*.ts"]
+  }
 }
