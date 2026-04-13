@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,7 +10,8 @@ import { describe, expect, it } from 'vitest'
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
 const basicFixtureDir = join(fixturesDir, 'typed-pg-vitest-plugin')
 const parallelFixtureDir = join(fixturesDir, 'typed-pg-vitest-plugin-parallel')
-const vitestBin = join(process.cwd(), 'node_modules', 'vitest', 'vitest.mjs')
+const moduleRequire = createRequire(import.meta.url)
+const vitestBin = join(dirname(moduleRequire.resolve('vitest/package.json')), 'vitest.mjs')
 
 interface ParallelFixtureResult {
   caseName: string

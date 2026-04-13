@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 
-import { Logger } from '@faasjs/logger'
+import { Logger } from '@faasjs/node-utils'
 import postgres, { type Sql } from 'postgres'
 
 import { createClient } from '../client'

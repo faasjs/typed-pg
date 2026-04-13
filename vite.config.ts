@@ -95,6 +95,9 @@ export default defineConfig({
   },
   pack,
   test: {
+    alias: {
+      'typed-pg': join(process.cwd(), 'packages', 'typed-pg', 'src', 'index.ts'),
+    },
     globalSetup: ['packages/typed-pg/src/__tests__/global-setup.ts'],
     fileParallelism: false,
     restoreMocks: true,

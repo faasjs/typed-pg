@@ -40,7 +40,7 @@ vi.mock('postgres', () => ({
   default: postgresMock,
 }))
 
-vi.mock('@faasjs/logger', () => ({
+vi.mock('@faasjs/node-utils', () => ({
   Logger: function Logger() {
     return logger
   },

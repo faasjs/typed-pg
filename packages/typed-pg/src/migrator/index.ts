@@ -1,7 +1,7 @@
 import { existsSync, globSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 
-import { Logger } from '@faasjs/logger'
+import { Logger } from '@faasjs/node-utils'
 
 import type { Client } from '../client'
 import { SchemaBuilder } from '../schema-builder'

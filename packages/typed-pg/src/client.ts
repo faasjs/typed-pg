@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { type Level, Logger } from '@faasjs/logger'
+import { type Level, Logger } from '@faasjs/node-utils'
 import type { Sql } from 'postgres'
 
 import { QueryBuilder } from './query-builder'

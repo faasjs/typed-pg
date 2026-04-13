@@ -41,18 +41,16 @@
       "require": "./dist/plugin.cjs"
     }
   },
-  "dependencies": {
+  "devDependencies": {
     "@electric-sql/pglite": "*",
     "@electric-sql/pglite-socket": "*",
-    "postgres": "*"
-  },
-  "devDependencies": {
-    "@types/node": "*",
-    "@vitest/coverage-v8": "*",
-    "typescript": "*",
-    "vitest": "*"
+    "postgres": "*",
+    "typed-pg": "*"
   },
   "peerDependencies": {
+    "@electric-sql/pglite": "*",
+    "@electric-sql/pglite-socket": "*",
+    "postgres": "*",
     "typed-pg": "*"
   },
   "engines": {

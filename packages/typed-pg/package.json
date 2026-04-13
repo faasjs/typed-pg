@@ -40,18 +40,12 @@
     }
   },
   "devDependencies": {
-    "@faasjs/logger": "*",
-    "@types/node": "*",
-    "@vitest/coverage-v8": "*",
-    "postgres": "*",
-    "tsx": "*",
-    "typescript": "*",
-    "vitest": "*"
+    "@faasjs/node-utils": "8.0.0-beta.21",
+    "postgres": "*"
   },
   "peerDependencies": {
-    "@faasjs/logger": "*",
-    "postgres": "*",
-    "tsx": "*"
+    "@faasjs/node-utils": "8.0.0-beta.21",
+    "postgres": "*"
   },
   "engines": {
     "node": ">=24.0.0",
