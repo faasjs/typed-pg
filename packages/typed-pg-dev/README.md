@@ -1,8 +1,7 @@
 # typed-pg-dev
 
-`typed-pg-dev` provides PGlite-powered helpers for running `typed-pg` in
-development and test environments without provisioning an external PostgreSQL
-service.
+`typed-pg-dev` exposes `TypedPgVitestPlugin`, a PGlite-powered Vitest plugin for
+running `typed-pg` suites without provisioning an external PostgreSQL service.
 
 ## Installation
 
@@ -12,29 +11,32 @@ npm install -D typed-pg-dev
 
 ## Vitest
 
-Use the bundled global setup to boot an in-memory PGlite socket server and
-expose it through `DATABASE_URL`:
-
 ```ts
 import { defineConfig } from 'vitest/config'
+import { TypedPgVitestPlugin } from 'typed-pg-dev/plugin'
 
 export default defineConfig({
-  test: {
-    globalSetup: ['typed-pg-dev/vitest'],
-  },
+  plugins: [TypedPgVitestPlugin()],
 })
 ```
 
-## Creating a `postgres.js` client for tests
+## Creating a client from `DATABASE_URL`
 
 ```ts
+import postgres from 'postgres'
 import { createClient } from 'typed-pg'
-import { createTestingPostgres } from 'typed-pg-dev'
 
-const client = createClient(createTestingPostgres())
+const databaseUrl = process.env.DATABASE_URL
+
+if (!databaseUrl) throw new Error('DATABASE_URL is required')
+
+const client = createClient(postgres(databaseUrl))
 ```
 
-## Advanced usage
+`TypedPgVitestPlugin()` automatically:
 
-If you need to manage the lifecycle yourself, use `startPGliteServer()` or
-`createVitestSetup()` from the main entrypoint.
+- creates a temporary test database
+- provisions one temporary database per Vitest worker when file parallelism is enabled
+- runs migrations from `./migrations`
+- injects the URL into `process.env.DATABASE_URL`
+- truncates tables before each test while keeping `typed_pg_migrations`

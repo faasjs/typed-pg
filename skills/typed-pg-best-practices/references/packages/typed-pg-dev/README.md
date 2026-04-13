@@ -2,5 +2,4 @@
 
 ## Modules
 
-- [index](index/README.md)
-- [vitest](vitest/README.md)
+- [plugin](plugin/README.md)

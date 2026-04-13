@@ -1,7 +1,7 @@
 {
   "name": "typed-pg-dev",
   "version": "1.0.0",
-  "description": "PGlite-powered development and testing helpers for typed-pg.",
+  "description": "PGlite-powered Vitest plugin for typed-pg.",
   "keywords": [
     "development",
     "pglite",
@@ -35,10 +35,10 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
-    "./vitest": {
-      "types": "./dist/vitest.d.ts",
-      "import": "./dist/vitest.mjs",
-      "require": "./dist/vitest.cjs"
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.mjs",
+      "require": "./dist/plugin.cjs"
     }
   },
   "dependencies": {
@@ -51,6 +51,9 @@
     "@vitest/coverage-v8": "*",
     "typescript": "*",
     "vitest": "*"
+  },
+  "peerDependencies": {
+    "typed-pg": "*"
   },
   "engines": {
     "node": ">=24.0.0",

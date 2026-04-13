@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 
+import { viteConfig } from '@faasjs/dev'
 import { defineConfig, type UserConfig } from 'vite-plus'
 import type { PackUserConfig } from 'vite-plus/pack'
 
@@ -45,7 +46,9 @@ const pack: PackUserConfig[] = [
     cwd: join(process.cwd(), 'packages', 'typed-pg-dev'),
     entry: {
       index: './src/index.ts',
-      vitest: './src/vitest.ts',
+      plugin: './src/plugin.ts',
+      'typed-pg-vitest-global-setup': './src/typed-pg-vitest-global-setup.ts',
+      'typed-pg-vitest-setup': './src/typed-pg-vitest-setup.ts',
     },
     platform: 'node',
     format: ['esm', 'cjs'],
@@ -80,51 +83,19 @@ const pack: PackUserConfig[] = [
   },
 ]
 
-const ignorePatterns = ['**/dist/**', 'node_modules/**', 'coverage/**']
-
 export default defineConfig({
-  staged: {
-    '*': 'npx vp check --fix',
-  },
-  resolve: {
-    tsconfigPaths: true,
-  },
-  fmt: {
-    ignorePatterns,
-    semi: false,
-    singleQuote: true,
-    sortImports: {},
-  },
+  ...viteConfig,
   lint: {
-    ignorePatterns,
-    plugins: ['typescript', 'node', 'vitest', 'import', 'eslint'],
-    env: {
-      builtin: true,
-      node: true,
-    },
-    settings: {
-      vitest: {
-        typecheck: true,
-      },
-    },
-    options: {
-      typeAware: true,
-      typeCheck: true,
-    },
+    ...viteConfig.lint,
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      'typescript/consistent-type-imports': [
-        'error',
-        {
-          prefer: 'type-imports',
-          fixStyle: 'separate-type-imports',
-        },
-      ],
+      ...viteConfig.lint?.rules,
+      'jest/no-export': 'off',
+      'unicorn/no-thenable': 'off',
     },
   },
   pack,
   test: {
-    globalSetup: ['packages/typed-pg-dev/src/vitest.ts'],
+    globalSetup: ['packages/typed-pg/src/__tests__/global-setup.ts'],
     fileParallelism: false,
     restoreMocks: true,
     clearMocks: true,

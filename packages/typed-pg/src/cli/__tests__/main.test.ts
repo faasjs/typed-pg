@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+type VoidMock = (...args: any[]) => void
+type AnyMock = (...args: any[]) => unknown
+type AsyncVoidMock = (...args: any[]) => Promise<void>
+type AsyncRowsMock<T> = (...args: any[]) => Promise<T[]>
+
 const {
   logger,
   postgresMock,
@@ -11,24 +16,24 @@ const {
   writeFileSyncMock,
 } = vi.hoisted(() => ({
   logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    error: vi.fn(),
-    time: vi.fn(),
-    timeEnd: vi.fn(),
+    debug: vi.fn<VoidMock>(),
+    info: vi.fn<VoidMock>(),
+    error: vi.fn<VoidMock>(),
+    time: vi.fn<VoidMock>(),
+    timeEnd: vi.fn<VoidMock>(),
   },
-  postgresMock: vi.fn(),
-  createClientMock: vi.fn(() => ({ client: true })),
+  postgresMock: vi.fn<AnyMock>(),
+  createClientMock: vi.fn<AnyMock>(() => ({ client: true })),
   migratorState: {
-    status: vi.fn(async () => [] as Array<{ name: string; migration_time: Date }>),
-    migrate: vi.fn(async () => undefined),
-    up: vi.fn(async () => undefined),
-    down: vi.fn(async () => undefined),
+    status: vi.fn<AsyncRowsMock<{ name: string; migration_time: Date }>>(async () => []),
+    migrate: vi.fn<AsyncVoidMock>(async () => undefined),
+    up: vi.fn<AsyncVoidMock>(async () => undefined),
+    down: vi.fn<AsyncVoidMock>(async () => undefined),
   },
-  migratorCtorSpy: vi.fn(),
-  existsSyncMock: vi.fn(() => true),
-  mkdirSyncMock: vi.fn(),
-  writeFileSyncMock: vi.fn(),
+  migratorCtorSpy: vi.fn<VoidMock>(),
+  existsSyncMock: vi.fn<() => boolean>(() => true),
+  mkdirSyncMock: vi.fn<VoidMock>(),
+  writeFileSyncMock: vi.fn<VoidMock>(),
 }))
 
 vi.mock('postgres', () => ({
@@ -54,7 +59,7 @@ vi.mock('../../migrator', () => ({
 
 vi.mock('node:fs', () => ({
   existsSync: existsSyncMock,
-  globSync: vi.fn(),
+  globSync: vi.fn<() => string[]>(),
   mkdirSync: mkdirSyncMock,
   writeFileSync: writeFileSyncMock,
 }))
@@ -62,7 +67,7 @@ vi.mock('node:fs', () => ({
 import { main } from '../main'
 
 function mockConnectedPostgres() {
-  const sql = vi.fn(async () => [])
+  const sql = vi.fn<AsyncRowsMock<unknown>>(async () => [])
   postgresMock.mockReturnValue(sql)
   return sql
 }
@@ -94,7 +99,7 @@ describe('cli/main', () => {
 
   it('logs error on failed database connection', async () => {
     postgresMock.mockReturnValue(
-      vi.fn(async () => {
+      vi.fn<(...args: any[]) => Promise<never>>(async () => {
         throw new Error('ECONNREFUSED')
       }),
     )

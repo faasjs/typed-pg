@@ -4,6 +4,9 @@ import { Client, createClient } from '../client'
 import { QueryBuilder } from '../query-builder'
 import { createTestingPostgres } from './utils'
 
+type MockPostgresQuery = (...args: any[]) => Promise<Array<{ ok: true }>>
+type MockPostgresFailure = (...args: any[]) => Promise<never>
+
 describe('client', () => {
   let client: Client
 
@@ -43,7 +46,7 @@ describe('client', () => {
 
   describe('logger', () => {
     it('skips debug logging when logger is disabled', async () => {
-      const postgres = vi.fn(async () => [{ ok: true }]) as any
+      const postgres = vi.fn<MockPostgresQuery>(async () => [{ ok: true }]) as any
       const localClient = new Client(postgres, { logger: false })
 
       expect(await localClient.raw('SELECT 1')).toEqual([{ ok: true }])
@@ -52,7 +55,7 @@ describe('client', () => {
     })
 
     it('records timing in debug mode', async () => {
-      const postgres = vi.fn(async () => [{ ok: true }]) as any
+      const postgres = vi.fn<MockPostgresQuery>(async () => [{ ok: true }]) as any
       const localClient = new Client(postgres, {
         logger: {
           label: 'typed-pg-test',
@@ -69,7 +72,7 @@ describe('client', () => {
     })
 
     it('logs and rethrows query errors in debug mode', async () => {
-      const postgres = vi.fn(async () => {
+      const postgres = vi.fn<MockPostgresFailure>(async () => {
         throw new Error('raw failed')
       }) as any
       const localClient = new Client(postgres, {

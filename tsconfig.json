@@ -19,6 +19,10 @@
     "moduleResolution": "bundler",
     "sourceMap": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "typed-pg": ["./packages/typed-pg/src"],
+      "typed-pg-dev": ["./packages/typed-pg-dev/src"]
+    }
   }
 }

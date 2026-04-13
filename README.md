@@ -56,22 +56,33 @@ npm install -D typed-pg-dev
 
 ## Testing
 
-Tests run against a PGlite socket server started by `typed-pg-dev`, so no
+Tests run against a temporary database started by `typed-pg-dev`, so no
 external PostgreSQL service is required.
 
 ```ts
 import { defineConfig } from 'vitest/config'
+import { TypedPgVitestPlugin } from 'typed-pg-dev/plugin'
 
 export default defineConfig({
-  test: {
-    globalSetup: ['typed-pg-dev/vitest'],
-  },
+  plugins: [TypedPgVitestPlugin()],
 })
 ```
 
 ```ts
+import postgres from 'postgres'
 import { createClient } from 'typed-pg'
-import { createTestingPostgres } from 'typed-pg-dev'
 
-const client = createClient(createTestingPostgres())
+const databaseUrl = process.env.DATABASE_URL
+
+if (!databaseUrl) throw new Error('DATABASE_URL is required')
+
+const client = createClient(postgres(databaseUrl))
 ```
+
+`TypedPgVitestPlugin()` automatically:
+
+- creates a temporary test database
+- provisions one temporary database per Vitest worker when file parallelism is enabled
+- runs migrations from `./migrations`
+- injects the URL into `process.env.DATABASE_URL`
+- truncates tables before each test while keeping `typed_pg_migrations`

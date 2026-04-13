@@ -12,28 +12,39 @@ surface changes should come with type assertions.
 
 ## Default Workflow
 
-1. Run tests with the bundled PGlite setup instead of provisioning an external PostgreSQL server.
-2. Create clients with `createTestingPostgres()` in runtime tests.
-3. Create or reset tables inside each suite so tests stay isolated.
+1. Prefer `TypedPgVitestPlugin()` so Vitest boots a temporary database, provisions one database per
+   worker when file parallelism is enabled, runs migrations, and clears table contents before each test.
+2. Build clients from `process.env.DATABASE_URL` so production and test code share the same
+   connection bootstrap path.
+3. Add only the suite-specific setup or fixtures that the plugin does not already provide.
 4. Pair runtime assertions with `expectTypeOf(...)` when a change affects inference.
 5. Run `npm test` for behavior changes, and `npm run build` when exports or CLI entrypoints change.
 
 ## Minimal Example
 
 ```ts
-import { beforeAll, afterAll, describe, expect, it } from 'vitest'
+// vitest.config.ts
+import { defineConfig } from 'vitest/config'
+import { TypedPgVitestPlugin } from 'typed-pg-dev/plugin'
+
+export default defineConfig({
+  plugins: [TypedPgVitestPlugin()],
+})
+```
+
+```ts
+import postgres from 'postgres'
+import { afterAll, describe, expect, it } from 'vitest'
 import { createClient } from 'typed-pg'
-import { createTestingPostgres } from 'typed-pg-dev'
+
+const databaseUrl = process.env.DATABASE_URL
+
+if (!databaseUrl) throw new Error('DATABASE_URL is required')
 
 describe('users query', () => {
-  const client = createClient(createTestingPostgres())
-
-  beforeAll(async () => {
-    await client.raw`CREATE TABLE users (id serial primary key, name text)`
-  })
+  const client = createClient(postgres(databaseUrl))
 
   afterAll(async () => {
-    await client.raw`DROP TABLE users`
     await client.quit()
   })
 
@@ -65,20 +76,22 @@ describe('users query', () => {
 ### 4. Keep tests isolated even without file parallelism
 
 - The test runner uses `fileParallelism: false`, but tests should still clean up after themselves.
-- Create, truncate, and drop tables explicitly.
+- Prefer `TypedPgVitestPlugin()` to reset rows automatically before each test.
+- Create extra tables or fixture data explicitly when a suite goes beyond the default migrations.
 - Do not rely on hidden state from another file.
 
-### 5. Use `typed-pg-dev` for local database setup
+### 5. Use `typed-pg-dev` through the Vitest plugin
 
-- Prefer the bundled `typed-pg-dev/vitest` global setup for workspace test runs.
-- Use `createTestingPostgres()` when a suite needs a `postgres.js` client directly.
+- Prefer `TypedPgVitestPlugin()` for workspace test runs.
+- Read the database connection string from `process.env.DATABASE_URL` in both production and tests.
+- Keep lower-level database bootstrapping internal to the repo; public examples should only show the plugin.
 
 ## Review Checklist
 
 - runtime behavior changes have test coverage
 - public type changes have `expectTypeOf` coverage
 - tests live in the feature area that changed
-- suites create and clean up their own tables or temp folders
+- suites either rely on the plugin reset or clean up their own extra tables/temp folders
 - validation commands match the change surface
 
 ## Read Next

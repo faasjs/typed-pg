@@ -6,7 +6,7 @@ describe('cli/index', () => {
   })
 
   it('invokes main and exits with code 0', async () => {
-    const main = vi.fn(async () => undefined)
+    const main = vi.fn<() => Promise<void>>(async () => undefined)
     vi.doMock('../main', () => ({ main }))
 
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as any)
