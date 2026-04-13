@@ -93,6 +93,9 @@ export default defineConfig({
       'unicorn/no-thenable': 'off',
     },
   },
+  staged: {
+    '*': 'vp check --fix',
+  },
   pack,
   test: {
     alias: {
