@@ -5,16 +5,19 @@ describe('cli/index', () => {
     vi.resetModules()
   })
 
-  it('invokes main and exits with code 0', async () => {
-    const main = vi.fn<() => Promise<void>>(async () => undefined)
+  it('invokes main and exposes the returned exit code via process.exitCode', async () => {
+    const main = vi.fn<() => Promise<number>>(async () => 1)
     vi.doMock('../main', () => ({ main }))
 
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as any)
+    const previousExitCode = process.exitCode
+    process.exitCode = undefined
 
     await import('../index')
     await Promise.resolve()
 
     expect(main).toHaveBeenCalledTimes(1)
-    expect(exitSpy).toHaveBeenCalledWith(0)
+    expect(process.exitCode).toBe(1)
+
+    process.exitCode = previousExitCode
   })
 })

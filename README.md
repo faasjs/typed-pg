@@ -13,7 +13,7 @@ The published packages now live in `packages/typed-pg` and `packages/typed-pg-de
 [![Downloads](https://img.shields.io/npm/dm/typed-pg)](https://github.com/faasjs/typed-pg)
 [![Pull requests](https://img.shields.io/github/issues-pr-closed/faasjs/typed-pg)](https://github.com/faasjs/typed-pg/pulls)
 
-**This package is still in development and not yet ready for production use.**
+`typed-pg` is ready for production use on the supported runtime targets: `node >= 24` and `npm >= 11`.
 
 A type-safe PostgreSQL query builder for TypeScript with a fluent API.
 

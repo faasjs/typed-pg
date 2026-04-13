@@ -1,5 +1,12 @@
-#!/usr/bin/env -S npx tsx
+#!/usr/bin/env node
 
 import { main } from './main'
 
-void main().finally(() => process.exit(0))
+void main()
+  .then((code) => {
+    process.exitCode = code
+  })
+  .catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })

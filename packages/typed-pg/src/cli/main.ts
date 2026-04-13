@@ -7,79 +7,40 @@ import postgres, { type Sql } from 'postgres'
 import { createClient } from '../client'
 import { Migrator } from '../migrator'
 
-export async function main(operation = process.argv[2] as string) {
-  const logger = new Logger('TypedPg')
-  const connection = process.env.DATABASE_URL as string
-
-  if (!connection) {
-    logger.error(
-      'DATABASE_URL not set, please run `DATABASE_URL=postgres://<your pg url> typed-pg`',
-    )
-    return
-  }
-
-  let sql: Sql
-
-  try {
-    sql = postgres(connection)
-    await sql`SELECT 1`
-    logger.info('Connected to database successfully')
-  } catch (error) {
-    logger.error('Error connecting to database, please check your DATABASE_URL\n', error)
-    return
-  }
-
-  if (!operation) {
-    logger.error(`Please provide a operation to run: typed-pg <operation>
+function printUsage(logger: Logger) {
+  logger.error(`Please provide a operation to run: typed-pg <operation>
 - status: Show the status of migrations
 - migrate: Run all pending migrations
 - up: Run the next migration
 - down: Rollback the last migration
 - new <name>: Create a new migration file with the given name
 `)
-    return
+}
+
+async function closeSql(sql?: Sql) {
+  if (!sql) return
+
+  try {
+    await sql.end()
+  } catch {
+    // Ignore connection shutdown failures so the original CLI result wins.
+  }
+}
+
+function createMigration(logger: Logger, name = process.argv[3] as string) {
+  if (!name) {
+    logger.error('Please provide a name for the migration: `typed-pg new <name>`')
+    return 1
   }
 
-  const migrator = new Migrator({ client: createClient(sql), folder: 'migrations' })
+  const folder = resolve('migrations')
+  const filename = `${new Date().toISOString().replace(/[^0-9]/g, '')}-${name}.ts`
+  const file = join(folder, filename)
 
-  switch (operation) {
-    case 'status': {
-      const migrations = await migrator.status()
-
-      logger.info('Status:')
-      migrations.forEach((migration) => {
-        logger.info(`- ${migration.name} (${migration.migration_time})`)
-      })
-      break
-    }
-    case 'migrate': {
-      await migrator.migrate()
-      break
-    }
-    case 'up': {
-      await migrator.up()
-      break
-    }
-    case 'down': {
-      await migrator.down()
-      break
-    }
-    case 'new': {
-      const name = process.argv[3] as string
-
-      if (!name) {
-        logger.error('Please provide a name for the migration: `typed-pg new <name>`')
-        return
-      }
-
-      const folder = resolve('migrations')
-      const filename = `${new Date().toISOString().replace(/[^0-9]/g, '')}-${name}.ts`
-      const file = join(folder, filename)
-
-      if (!existsSync(folder)) mkdirSync(folder, { recursive: true })
-      writeFileSync(
-        file,
-        `// ${filename}.ts
+  if (!existsSync(folder)) mkdirSync(folder, { recursive: true })
+  writeFileSync(
+    file,
+    `// ${filename}.ts
 import type { SchemaBuilder } from 'typed-pg'
 
 export function up(builder: SchemaBuilder) {
@@ -90,13 +51,88 @@ export function down(builder: SchemaBuilder) {
   // Write your rollback here
 }
 `,
-      )
+  )
 
-      logger.info('Created migration:', file)
-      break
+  logger.info('Created migration:', file)
+  return 0
+}
+
+export async function main(operation = process.argv[2] as string) {
+  const logger = new Logger('TypedPg')
+
+  if (!operation) {
+    printUsage(logger)
+    return 1
+  }
+
+  if (operation === 'new') return createMigration(logger)
+
+  if (!['status', 'migrate', 'up', 'down'].includes(operation)) {
+    logger.error('Unknown operation:', operation)
+    return 1
+  }
+
+  const connection = process.env.DATABASE_URL as string | undefined
+
+  if (!connection) {
+    logger.error(
+      'DATABASE_URL not set, please run `DATABASE_URL=postgres://<your pg url> typed-pg`',
+    )
+    return 1
+  }
+
+  let sql: Sql | undefined
+
+  try {
+    sql = postgres(connection)
+    await sql`SELECT 1`
+    logger.info('Connected to database successfully')
+  } catch (error) {
+    logger.error('Error connecting to database, please check your DATABASE_URL\n', error)
+    await closeSql(sql)
+    return 1
+  }
+
+  let migrator: Migrator
+
+  try {
+    migrator = new Migrator({ client: createClient(sql), folder: 'migrations' })
+  } catch (error) {
+    logger.error(error instanceof Error ? error.message : String(error))
+    await closeSql(sql)
+    return 1
+  }
+
+  try {
+    switch (operation) {
+      case 'status': {
+        const migrations = await migrator.status()
+
+        logger.info('Status:')
+        migrations.forEach((migration) => {
+          logger.info(`- ${migration.name} (${migration.migration_time})`)
+        })
+        return 0
+      }
+      case 'migrate': {
+        await migrator.migrate()
+        return 0
+      }
+      case 'up': {
+        await migrator.up()
+        return 0
+      }
+      case 'down': {
+        await migrator.down()
+        return 0
+      }
+      default:
+        return 1
     }
-    default:
-      logger.error('Unknown operation:', operation)
-      break
+  } catch (error) {
+    if (operation === 'status') logger.error(error)
+    return 1
+  } finally {
+    await closeSql(sql)
   }
 }
