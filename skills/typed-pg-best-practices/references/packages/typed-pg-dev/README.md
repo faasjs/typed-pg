@@ -1,5 +1,5 @@
 # typed-pg-dev
 
-## Modules
+## Functions
 
-- [plugin](plugin/README.md)
+- [TypedPgVitestPlugin](functions/TypedPgVitestPlugin.md)

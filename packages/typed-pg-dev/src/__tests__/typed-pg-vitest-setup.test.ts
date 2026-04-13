@@ -98,9 +98,7 @@ describe('typed-pg-vitest setup', () => {
   })
 
   it('throws when the plugin did not provide any database urls', async () => {
-    await expect(loadSetupModule({})).rejects.toThrowError(
-      /did not provide a testing database URL/,
-    )
+    await expect(loadSetupModule({})).rejects.toThrowError(/did not provide a testing database URL/)
     expect(registeredBeforeEach).toBeUndefined()
   })
 })

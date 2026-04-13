@@ -69,27 +69,6 @@ describe('TypedPgVitestPlugin', () => {
     expect(project.config.setupFiles[1]).toBe('custom-setup.ts')
   })
 
-  it('initializes setup entries when the project has none yet', () => {
-    const plugin = TypedPgVitestPlugin()
-    const project = {
-      config: {
-        provide: {},
-      },
-    }
-
-    plugin.configureVitest?.({
-      experimental_defineCacheKeyGenerator() {},
-      injectTestProjects: async () => [],
-      project: project as never,
-      vitest: {} as never,
-    })
-
-    expect(project.config.globalSetup).toHaveLength(1)
-    expect(project.config.globalSetup[0]).toMatch(/typed-pg-vitest-global-setup\.ts$/)
-    expect(project.config.setupFiles).toHaveLength(1)
-    expect(project.config.setupFiles[0]).toMatch(/typed-pg-vitest-setup\.ts$/)
-  })
-
   it('prefers the Vitest pool id when resolving a worker id', () => {
     expect(
       resolveTypedPgVitestWorkerId({

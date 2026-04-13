@@ -1,10 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { startPGliteServer } from '../pglite'
 import { createTestingPostgres } from '../postgres'
 import { resetTestingDatabase } from '../testing'
-
-vi.mock('typed-pg', async () => await import('../../../typed-pg/src/index.ts'))
 
 describe('testing helpers', () => {
   it('truncates public tables while preserving excluded tables', async () => {
