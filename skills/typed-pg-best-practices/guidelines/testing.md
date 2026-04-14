@@ -25,7 +25,7 @@ surface changes should come with type assertions.
 ```ts
 // vitest.config.ts
 import { defineConfig } from 'vitest/config'
-import { TypedPgVitestPlugin } from 'typed-pg-dev/plugin'
+import { TypedPgVitestPlugin } from 'typed-pg-dev'
 
 export default defineConfig({
   plugins: [TypedPgVitestPlugin()],

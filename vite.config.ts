@@ -46,9 +46,6 @@ const pack: PackUserConfig[] = [
     cwd: join(process.cwd(), 'packages', 'typed-pg-dev'),
     entry: {
       index: './src/index.ts',
-      plugin: './src/plugin.ts',
-      'typed-pg-vitest-global-setup': './src/typed-pg-vitest-global-setup.ts',
-      'typed-pg-vitest-setup': './src/typed-pg-vitest-setup.ts',
     },
     platform: 'node',
     format: ['esm', 'cjs'],
