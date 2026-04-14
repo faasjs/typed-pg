@@ -34,6 +34,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
+    },
+    "./typed-pg-vitest-global-setup": {
+      "types": "./dist/typed-pg-vitest-global-setup.d.ts",
+      "import": "./dist/typed-pg-vitest-global-setup.mjs",
+      "require": "./dist/typed-pg-vitest-global-setup.cjs"
+    },
+    "./typed-pg-vitest-setup": {
+      "types": "./dist/typed-pg-vitest-setup.d.ts",
+      "import": "./dist/typed-pg-vitest-setup.mjs",
+      "require": "./dist/typed-pg-vitest-setup.cjs"
     }
   },
   "devDependencies": {

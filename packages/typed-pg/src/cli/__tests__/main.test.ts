@@ -67,9 +67,12 @@ vi.mock('node:fs', () => ({
 import { main } from '../main'
 
 function mockConnectedPostgres() {
-  const sql = Object.assign(vi.fn<AsyncRowsMock<unknown>>(async () => []), {
-    end: vi.fn<AsyncVoidMock>(async () => undefined),
-  })
+  const sql = Object.assign(
+    vi.fn<AsyncRowsMock<unknown>>(async () => []),
+    {
+      end: vi.fn<AsyncVoidMock>(async () => undefined),
+    },
+  )
   postgresMock.mockReturnValue(sql)
   return sql
 }
