@@ -9,16 +9,6 @@ on:
       - completed
     branches:
       - main
-    paths:
-      - packages/typed-pg/**
-      - package.json
-      - package-lock.json
-      - vite.config.ts
-      - tsconfig.json
-      - tsconfig.build.json
-      - devel.js
-      - .github/workflows/unit-test.yml
-      - .github/workflows/devel.yml
 
 concurrency:
   group: ${{ github.workflow }}

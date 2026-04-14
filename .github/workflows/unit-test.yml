@@ -7,20 +7,26 @@ on:
       - main
     paths:
       - packages/typed-pg/**
+      - packages/typed-pg-dev/**
       - package.json
       - package-lock.json
       - vite.config.ts
       - tsconfig.json
       - tsconfig.build.json
+      - devel.js
+      - .github/workflows/devel.yml
       - .github/workflows/unit-test.yml
   pull_request:
     paths:
       - packages/typed-pg/**
+      - packages/typed-pg-dev/**
       - package.json
       - package-lock.json
       - vite.config.ts
       - tsconfig.json
       - tsconfig.build.json
+      - devel.js
+      - .github/workflows/devel.yml
 
 jobs:
   unit-test:

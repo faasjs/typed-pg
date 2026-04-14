@@ -1,22 +1,25 @@
 import { execSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 
-import PackageJson from './packages/typed-pg/package.json' with { type: 'json' }
+const packageDirectories = ['./packages/typed-pg', './packages/typed-pg-dev']
+const versionSuffix = `devel-${Date.now()}`
 
-PackageJson.version = `${PackageJson.version}-devel-${Date.now()}`
+const updatePackageVersion = (directory) => {
+  const packageJsonPath = `${directory}/package.json`
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
+
+  packageJson.version = `${packageJson.version}-${versionSuffix}`
+
+  writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`)
+}
 
 execSync('npm run build', { stdio: 'inherit' })
 
-writeFileSync('./packages/typed-pg/package.json', `${JSON.stringify(PackageJson, null, 2)}\n`)
+for (const directory of packageDirectories) {
+  updatePackageVersion(directory)
 
-execSync('npm publish --access public --tag devel', {
-  cwd: './packages/typed-pg',
-  stdio: 'inherit',
-})
-
-writeFileSync('./packages/typed-pg-dev/package.json', `${JSON.stringify(PackageJson, null, 2)}\n`)
-
-execSync('npm publish --access public --tag devel', {
-  cwd: './packages/typed-pg-dev',
-  stdio: 'inherit',
-})
+  execSync('npm publish --access public --tag devel', {
+    cwd: directory,
+    stdio: 'inherit',
+  })
+}
