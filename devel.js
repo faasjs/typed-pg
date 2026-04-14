@@ -13,3 +13,10 @@ execSync('npm publish --access public --tag devel', {
   cwd: './packages/typed-pg',
   stdio: 'inherit',
 })
+
+writeFileSync('./packages/typed-pg-dev/package.json', `${JSON.stringify(PackageJson, null, 2)}\n`)
+
+execSync('npm publish --access public --tag devel', {
+  cwd: './packages/typed-pg-dev',
+  stdio: 'inherit',
+})
