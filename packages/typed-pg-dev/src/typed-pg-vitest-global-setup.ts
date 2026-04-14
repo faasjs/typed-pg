@@ -1,69 +1,65 @@
-import { globSync } from 'node:fs'
-import { basename, join, resolve } from 'node:path'
+import { existsSync, globSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
-import { SchemaBuilder, createClient } from 'typed-pg'
+import { Migrator, SchemaBuilder, createClient, type Client } from 'typed-pg'
 import type { TestProject } from 'vitest/node'
 
 import { startPGliteServer, type StartedPGliteServer } from './pglite'
 import {
   TYPED_PG_VITEST_DATABASE_URLS_KEY,
   TYPED_PG_VITEST_MIGRATIONS_FOLDER,
-  TYPED_PG_VITEST_MIGRATIONS_TABLE_NAME,
   type TypedPgVitestDatabaseUrls,
 } from './plugin-context'
-import { createTestingPostgres } from './postgres'
 import { resolveVitestWorkerCount } from './vitest-worker-count'
 
-interface MigrationFileModule {
-  up?: (builder: SchemaBuilder) => void
+async function runSchemaBuilderStatements(builder: SchemaBuilder) {
+  const statements = builder
+    .toSQL()
+    .map((statement) => statement.trim())
+    .filter(Boolean)
+
+  if (!statements.length) return
+
+  const client = Reflect.get(builder as object, 'client') as Client
+
+  await client.transaction(async (db: Client) => {
+    for (const statement of statements) {
+      await db.raw(statement)
+    }
+  })
+
+  // Preserve `SchemaBuilder.run()` semantics so retries don't re-run already applied statements.
+  Reflect.set(builder as object, 'changes', [])
 }
 
 async function migrateTestingDatabase(project: TestProject, databaseUrl: string) {
   const migrationsFolder = resolve(project.config.root, TYPED_PG_VITEST_MIGRATIONS_FOLDER)
-  const files = globSync(join(migrationsFolder, '*.ts')).sort()
+  if (!existsSync(migrationsFolder)) return
+  if (!globSync(join(migrationsFolder, '*.ts')).length) return
 
-  if (!files.length) return
-
-  const sql = createTestingPostgres(databaseUrl)
-  const client = createClient(sql)
+  const client = createClient(databaseUrl, {
+    max: 1,
+    ssl: false,
+  })
+  const originalRun = Object.getOwnPropertyDescriptor(SchemaBuilder.prototype, 'run')?.value as
+    | ((this: SchemaBuilder) => Promise<void>)
+    | undefined
 
   try {
-    await client.raw(`CREATE TABLE IF NOT EXISTS ${TYPED_PG_VITEST_MIGRATIONS_TABLE_NAME} (
-      "name" varchar(255) NULL,
-      migration_time timestamptz NULL,
-      CONSTRAINT ${TYPED_PG_VITEST_MIGRATIONS_TABLE_NAME}_pkey PRIMARY KEY (name)
-    )`)
-
-    const appliedMigrations = new Set(
-      (
-        await client.raw<{ name: string }>(
-          `SELECT name FROM ${TYPED_PG_VITEST_MIGRATIONS_TABLE_NAME}`,
-        )
-      ).map((migration) => migration.name),
-    )
-
-    for (const file of files) {
-      const name = basename(file, '.ts')
-
-      if (appliedMigrations.has(name)) continue
-
-      const migrationModule = (await project.vite.ssrLoadModule(file)) as MigrationFileModule
-
-      if (typeof migrationModule.up !== 'function') {
-        throw Error(`Migration file must export an up(builder) function: ${file}`)
-      }
-
-      const builder = new SchemaBuilder(client)
-
-      migrationModule.up(builder)
-      await builder.run()
-      await client.raw(
-        `INSERT INTO ${TYPED_PG_VITEST_MIGRATIONS_TABLE_NAME} (name, migration_time) VALUES (?, NOW())`,
-        name,
-      )
-      appliedMigrations.add(name)
+    if (!originalRun) {
+      throw Error('SchemaBuilder.run() is required for typed-pg test setup.')
     }
+
+    SchemaBuilder.prototype.run = async function patchedRun(this: SchemaBuilder) {
+      await runSchemaBuilderStatements(this)
+    }
+
+    await new Migrator({ client, folder: migrationsFolder }).migrate()
   } finally {
+    if (originalRun) {
+      SchemaBuilder.prototype.run = originalRun
+    }
+
     await client.quit()
   }
 }
@@ -117,3 +113,5 @@ export async function setup(project: TestProject) {
     await stopTestingServers(testingServers)
   }
 }
+
+export default setup

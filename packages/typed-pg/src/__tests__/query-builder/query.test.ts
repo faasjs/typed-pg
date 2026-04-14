@@ -3,13 +3,13 @@ import { describe, it, expect, beforeAll, afterAll, expectTypeOf } from 'vitest'
 import type { User } from '../../../test-utils/tables'
 import { type Client, createClient } from '../../client'
 import { QueryBuilder } from '../../query-builder'
-import { createTestingPostgres } from '../utils'
+import { createTestingClientArgs } from '../utils'
 
 describe('QueryBuilder/query', () => {
   let client: Client
 
   beforeAll(async () => {
-    client = createClient(createTestingPostgres())
+    client = createClient(...createTestingClientArgs())
 
     await client.raw`
       CREATE TABLE query (

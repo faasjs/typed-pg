@@ -7,7 +7,7 @@ type AsyncRowsMock<T> = (...args: any[]) => Promise<T[]>
 
 const {
   logger,
-  postgresMock,
+  typedPgClient,
   createClientMock,
   migratorState,
   migratorCtorSpy,
@@ -22,8 +22,11 @@ const {
     time: vi.fn<VoidMock>(),
     timeEnd: vi.fn<VoidMock>(),
   },
-  postgresMock: vi.fn<AnyMock>(),
-  createClientMock: vi.fn<AnyMock>(() => ({ client: true })),
+  typedPgClient: {
+    raw: vi.fn<AsyncRowsMock<unknown>>(async () => []),
+    quit: vi.fn<AsyncVoidMock>(async () => undefined),
+  },
+  createClientMock: vi.fn<AnyMock>(() => typedPgClient),
   migratorState: {
     status: vi.fn<AsyncRowsMock<{ name: string; migration_time: Date }>>(async () => []),
     migrate: vi.fn<AsyncVoidMock>(async () => undefined),
@@ -34,10 +37,6 @@ const {
   existsSyncMock: vi.fn<() => boolean>(() => true),
   mkdirSyncMock: vi.fn<VoidMock>(),
   writeFileSyncMock: vi.fn<VoidMock>(),
-}))
-
-vi.mock('postgres', () => ({
-  default: postgresMock,
 }))
 
 vi.mock('@faasjs/node-utils', () => ({
@@ -66,17 +65,6 @@ vi.mock('node:fs', () => ({
 
 import { main } from '../main'
 
-function mockConnectedPostgres() {
-  const sql = Object.assign(
-    vi.fn<AsyncRowsMock<unknown>>(async () => []),
-    {
-      end: vi.fn<AsyncVoidMock>(async () => undefined),
-    },
-  )
-  postgresMock.mockReturnValue(sql)
-  return sql
-}
-
 describe('cli/main', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -91,6 +79,8 @@ describe('cli/main', () => {
     migratorState.migrate.mockResolvedValue(undefined)
     migratorState.up.mockResolvedValue(undefined)
     migratorState.down.mockResolvedValue(undefined)
+    typedPgClient.raw.mockResolvedValue([])
+    typedPgClient.quit.mockResolvedValue(undefined)
   })
 
   it('logs error when DATABASE_URL is missing', async () => {
@@ -99,19 +89,11 @@ describe('cli/main', () => {
     await expect(main('status')).resolves.toBe(1)
 
     expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('DATABASE_URL not set'))
-    expect(postgresMock).not.toHaveBeenCalled()
+    expect(createClientMock).not.toHaveBeenCalled()
   })
 
   it('logs error on failed database connection', async () => {
-    const sql = Object.assign(
-      vi.fn<(...args: any[]) => Promise<never>>(async () => {
-        throw new Error('ECONNREFUSED')
-      }),
-      {
-        end: vi.fn<AsyncVoidMock>(async () => undefined),
-      },
-    )
-    postgresMock.mockReturnValue(sql)
+    typedPgClient.raw.mockRejectedValueOnce(new Error('ECONNREFUSED'))
 
     await expect(main('status')).resolves.toBe(1)
 
@@ -119,7 +101,7 @@ describe('cli/main', () => {
       expect.stringContaining('Error connecting to database, please check your DATABASE_URL\n'),
       expect.any(Error),
     )
-    expect(sql.end).toHaveBeenCalledTimes(1)
+    expect(typedPgClient.quit).toHaveBeenCalledTimes(1)
   })
 
   it('prints operation help when no operation is provided', async () => {
@@ -128,11 +110,10 @@ describe('cli/main', () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('Please provide a operation to run'),
     )
-    expect(postgresMock).not.toHaveBeenCalled()
+    expect(createClientMock).not.toHaveBeenCalled()
   })
 
   it('runs status operation', async () => {
-    const sql = mockConnectedPostgres()
     const migrationTime = new Date('2025-01-01T00:00:00.000Z')
 
     migratorState.status.mockResolvedValue([
@@ -141,36 +122,30 @@ describe('cli/main', () => {
 
     await expect(main('status')).resolves.toBe(0)
 
-    expect(createClientMock).toHaveBeenCalledWith(sql)
+    expect(createClientMock).toHaveBeenCalledWith(process.env.DATABASE_URL)
     expect(migratorCtorSpy).toHaveBeenCalledWith({
-      client: { client: true },
+      client: typedPgClient,
       folder: 'migrations',
     })
     expect(migratorState.status).toHaveBeenCalledTimes(1)
     expect(logger.info).toHaveBeenCalledWith('Status:')
     expect(logger.info).toHaveBeenCalledWith(`- 20250101000000_init (${String(migrationTime)})`)
-    expect(sql.end).toHaveBeenCalledTimes(1)
+    expect(typedPgClient.quit).toHaveBeenCalledTimes(1)
   })
 
   it('runs migrate operation', async () => {
-    mockConnectedPostgres()
-
     await expect(main('migrate')).resolves.toBe(0)
 
     expect(migratorState.migrate).toHaveBeenCalledTimes(1)
   })
 
   it('runs up operation', async () => {
-    mockConnectedPostgres()
-
     await expect(main('up')).resolves.toBe(0)
 
     expect(migratorState.up).toHaveBeenCalledTimes(1)
   })
 
   it('runs down operation', async () => {
-    mockConnectedPostgres()
-
     await expect(main('down')).resolves.toBe(0)
 
     expect(migratorState.down).toHaveBeenCalledTimes(1)
@@ -184,7 +159,7 @@ describe('cli/main', () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('Please provide a name for the migration'),
     )
-    expect(postgresMock).not.toHaveBeenCalled()
+    expect(createClientMock).not.toHaveBeenCalled()
     expect(migratorCtorSpy).not.toHaveBeenCalled()
   })
 
@@ -199,7 +174,7 @@ describe('cli/main', () => {
     expect(String(writeFileSyncMock.mock.calls[0][0])).toContain('-create_users.ts')
     expect(String(writeFileSyncMock.mock.calls[0][1])).toContain('export function up')
     expect(logger.info).toHaveBeenCalledWith('Created migration:', expect.any(String))
-    expect(postgresMock).not.toHaveBeenCalled()
+    expect(createClientMock).not.toHaveBeenCalled()
     expect(migratorCtorSpy).not.toHaveBeenCalled()
   })
 
@@ -211,11 +186,10 @@ describe('cli/main', () => {
 
     expect(mkdirSyncMock).not.toHaveBeenCalled()
     expect(writeFileSyncMock).toHaveBeenCalledTimes(1)
-    expect(postgresMock).not.toHaveBeenCalled()
+    expect(createClientMock).not.toHaveBeenCalled()
   })
 
   it('logs an error when the migrations folder is missing for database operations', async () => {
-    const sql = mockConnectedPostgres()
     migratorCtorSpy.mockImplementationOnce(() => {
       throw new Error('Migration folder not found: /tmp/migrations')
     })
@@ -223,13 +197,13 @@ describe('cli/main', () => {
     await expect(main('status')).resolves.toBe(1)
 
     expect(logger.error).toHaveBeenCalledWith('Migration folder not found: /tmp/migrations')
-    expect(sql.end).toHaveBeenCalledTimes(1)
+    expect(typedPgClient.quit).toHaveBeenCalledTimes(1)
   })
 
   it('logs unknown operation', async () => {
     await expect(main('unknown')).resolves.toBe(1)
 
     expect(logger.error).toHaveBeenCalledWith('Unknown operation:', 'unknown')
-    expect(postgresMock).not.toHaveBeenCalled()
+    expect(createClientMock).not.toHaveBeenCalled()
   })
 })

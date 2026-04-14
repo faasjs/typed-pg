@@ -1,11 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { SchemaBuilder } from '..'
-import { createTestingPostgres } from '../../__tests__/utils'
+import { createTestingClientArgs } from '../../__tests__/utils'
 import { type Client, createClient } from '../../client'
 
 describe('SchemaBuilder', () => {
-  const client: Client = createClient(createTestingPostgres())
+  const client: Client = createClient(...createTestingClientArgs())
 
   beforeEach(async () => {
     await client.raw('DROP TABLE IF EXISTS creators')

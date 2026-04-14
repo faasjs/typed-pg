@@ -30,7 +30,42 @@ function packPackage(packageDir: string) {
   return join(packageDir, tarballName)
 }
 
-function writeConsumerFixture(consumerDir: string) {
+function writeConsumerFixture(consumerDir: string, options: { multiProject?: boolean } = {}) {
+  const configLines = options.multiProject
+    ? [
+        "import { defineConfig } from 'vitest/config'",
+        "import { TypedPgVitestPlugin } from 'typed-pg-dev'",
+        '',
+        'export default defineConfig({',
+        '  plugins: [TypedPgVitestPlugin()],',
+        '  test: {',
+        '    projects: [',
+        '      {',
+        '        extends: true,',
+        '        test: {',
+        "          name: 'api',",
+        "          environment: 'node',",
+        "          include: ['test/**/*.test.ts'],",
+        '        },',
+        '      },',
+        '    ],',
+        '  },',
+        '})',
+        '',
+      ]
+    : [
+        "import { defineConfig } from 'vitest/config'",
+        "import { TypedPgVitestPlugin } from 'typed-pg-dev'",
+        '',
+        'export default defineConfig({',
+        '  plugins: [TypedPgVitestPlugin()],',
+        '  test: {',
+        "    include: ['test/**/*.test.ts'],",
+        '  },',
+        '})',
+        '',
+      ]
+
   writeFileSync(
     join(consumerDir, 'package.json'),
     JSON.stringify(
@@ -47,21 +82,7 @@ function writeConsumerFixture(consumerDir: string) {
   mkdirSync(join(consumerDir, 'migrations'), { recursive: true })
   mkdirSync(join(consumerDir, 'test'), { recursive: true })
 
-  writeFileSync(
-    join(consumerDir, 'vitest.config.ts'),
-    [
-      "import { defineConfig } from 'vitest/config'",
-      "import { TypedPgVitestPlugin } from 'typed-pg-dev'",
-      '',
-      'export default defineConfig({',
-      '  plugins: [TypedPgVitestPlugin()],',
-      '  test: {',
-      "    include: ['test/**/*.test.ts'],",
-      '  },',
-      '})',
-      '',
-    ].join('\n'),
-  )
+  writeFileSync(join(consumerDir, 'vitest.config.ts'), configLines.join('\n'))
 
   writeFileSync(
     join(consumerDir, 'migrations', '20250101000000_create_users.ts'),
@@ -141,6 +162,37 @@ describe('typed-pg-dev published package', () => {
           ),
         ),
       ).toBe(true)
+    } finally {
+      rmSync(typedPgTarball, { force: true })
+      rmSync(typedPgDevTarball, { force: true })
+      rmSync(consumerDir, { force: true, recursive: true })
+    }
+  }, 60_000)
+
+  it('works from the published package in a multi-project Vitest config', () => {
+    mkdirSync(tmpRoot, { recursive: true })
+
+    const consumerDir = mkdtempSync(join(tmpRoot, 'typed-pg-dev-consumer-projects-'))
+    const typedPgDir = join(workspaceRoot, 'packages', 'typed-pg')
+    const typedPgDevDir = join(workspaceRoot, 'packages', 'typed-pg-dev')
+
+    writeConsumerFixture(consumerDir, { multiProject: true })
+
+    run('npm', ['run', 'build'], workspaceRoot)
+
+    const typedPgTarball = packPackage(typedPgDir)
+    const typedPgDevTarball = packPackage(typedPgDevDir)
+
+    try {
+      run('npm', ['install', '--ignore-scripts', typedPgTarball, typedPgDevTarball], consumerDir)
+
+      const output = run(
+        process.execPath,
+        [vitestBin, 'run', '--config', 'vitest.config.ts', '--project', 'api'],
+        consumerDir,
+      )
+
+      expect(output).toContain('1 passed')
     } finally {
       rmSync(typedPgTarball, { force: true })
       rmSync(typedPgDevTarball, { force: true })

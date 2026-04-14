@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+type AsyncVoidMock = () => Promise<void>
+type InjectMock = (key: string) => Record<string, string> | undefined
+type BeforeEachMock = (callback: () => Promise<void>) => void
+type CreateTestingPostgresMock = (databaseUrl: string) => { end: ReturnType<typeof vi.fn> }
+type ResetTestingDatabaseMock = (
+  sql: { end: ReturnType<typeof vi.fn> },
+  excludeTables: string[],
+) => Promise<void>
+
 describe('typed-pg-vitest setup', () => {
   const originalDatabaseUrl = process.env.DATABASE_URL
   const originalPoolId = process.env.VITEST_POOL_ID
@@ -25,24 +34,34 @@ describe('typed-pg-vitest setup', () => {
     databaseUrls?: Record<string, string>
     resetImplementation?: () => Promise<void>
   }) {
-    const end = vi.fn(async () => undefined)
+    const closeTrackedTypedPgClients = vi.fn<AsyncVoidMock>(async () => undefined)
+    const end = vi.fn<AsyncVoidMock>(async () => undefined)
     const sql = { end }
-    const inject = vi.fn(() => options.databaseUrls)
-    const beforeEach = vi.fn((callback: () => Promise<void>) => {
+    const inject = vi.fn<InjectMock>(() => options.databaseUrls)
+    const beforeEach = vi.fn<BeforeEachMock>((callback) => {
       registeredBeforeEach = callback
     })
-    const createTestingPostgres = vi.fn(() => sql)
-    const resetTestingDatabase = vi.fn(options.resetImplementation ?? (async () => undefined))
+    const createTestingPostgres = vi.fn<CreateTestingPostgresMock>(() => sql)
+    const resetTestingDatabase = vi.fn<ResetTestingDatabaseMock>(
+      options.resetImplementation
+        ? async () => options.resetImplementation?.()
+        : async () => undefined,
+    )
 
     vi.doMock('vitest', () => ({
       beforeEach,
       inject,
+      vi,
     }))
     vi.doMock('../postgres', () => ({
       createTestingPostgres,
     }))
     vi.doMock('../testing', () => ({
       resetTestingDatabase,
+    }))
+    vi.doMock('../client-tracking', () => ({
+      closeTrackedTypedPgClients,
+      installTypedPgClientTracking: vi.fn<() => void>(),
     }))
 
     const module = await import('../typed-pg-vitest-setup')
@@ -51,6 +70,7 @@ describe('typed-pg-vitest setup', () => {
       module,
       mocks: {
         beforeEach,
+        closeTrackedTypedPgClients,
         createTestingPostgres,
         end,
         inject,
@@ -77,6 +97,7 @@ describe('typed-pg-vitest setup', () => {
 
     await registeredBeforeEach?.()
 
+    expect(mocks.closeTrackedTypedPgClients).toHaveBeenCalledTimes(1)
     expect(mocks.createTestingPostgres).toHaveBeenCalledWith('postgresql://worker-2')
     expect(mocks.resetTestingDatabase).toHaveBeenCalledWith(sql, ['typed_pg_migrations'])
     expect(mocks.end).toHaveBeenCalledTimes(1)

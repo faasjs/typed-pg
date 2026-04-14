@@ -65,15 +65,32 @@ export default defineConfig({
 })
 ```
 
+In multi-project setups, the plugin skips browser-like environments such as `jsdom` and
+`happy-dom` by default. You can also target specific Vitest projects or environments explicitly:
+
 ```ts
-import postgres from 'postgres'
+import { defineConfig } from 'vitest/config'
+import { TypedPgVitestPlugin } from 'typed-pg-dev'
+
+export default defineConfig({
+  plugins: [
+    TypedPgVitestPlugin({
+      projects: ['api'],
+      environments: ['node'],
+      beforeReset: '@/db/client#closeDbClient',
+    }),
+  ],
+})
+```
+
+```ts
 import { createClient } from 'typed-pg'
 
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) throw new Error('DATABASE_URL is required')
 
-const client = createClient(postgres(databaseUrl))
+const client = createClient(databaseUrl, { max: 1, ssl: false })
 ```
 
 `TypedPgVitestPlugin()` automatically:

@@ -20,17 +20,37 @@ export default defineConfig({
 })
 ```
 
+The plugin automatically skips browser-like Vitest environments such as `jsdom` and `happy-dom`.
+To target a narrower set explicitly, pass `projects` and/or `environments`:
+
+```ts
+import { defineConfig } from 'vitest/config'
+import { TypedPgVitestPlugin } from 'typed-pg-dev'
+
+export default defineConfig({
+  plugins: [
+    TypedPgVitestPlugin({
+      projects: ['api'],
+      environments: ['node'],
+      beforeReset: '@/db/client#closeDbClient',
+    }),
+  ],
+})
+```
+
+`beforeReset` is useful when your app caches a long-lived database client and you want the plugin
+to close that cache before truncating tables for the next test.
+
 ## Creating a client from `DATABASE_URL`
 
 ```ts
-import postgres from 'postgres'
 import { createClient } from 'typed-pg'
 
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) throw new Error('DATABASE_URL is required')
 
-const client = createClient(postgres(databaseUrl))
+const client = createClient(databaseUrl, { max: 1, ssl: false })
 ```
 
 `TypedPgVitestPlugin()` automatically:

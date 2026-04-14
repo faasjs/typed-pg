@@ -23,14 +23,13 @@ parameters, and only use raw fragments deliberately.
 ## Minimal Example
 
 ```ts
-import postgres from 'postgres'
 import { createClient } from 'typed-pg'
 
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) throw new Error('DATABASE_URL is required')
 
-const client = createClient(postgres(databaseUrl))
+const client = createClient(databaseUrl)
 
 await client.transaction(async (trx) => {
   await trx.raw('UPDATE users SET name = ? WHERE id = ?', 'Alice', 1)

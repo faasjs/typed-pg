@@ -71,7 +71,7 @@ This specification defines the authoring baseline for public API docs in `typed-
  * @example
  * ```ts
  * const sql = createTestingPostgres()
- * const client = createClient(sql)
+ * const rows = await sql`SELECT 1`
  * ```
  */
 export function createTestingPostgres<

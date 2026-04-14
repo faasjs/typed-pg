@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Migrator } from '..'
-import { createTestingPostgres } from '../../__tests__/utils'
+import { createTestingClientArgs } from '../../__tests__/utils'
 import type { Client } from '../../client'
 import { createClient } from '../../client'
 
@@ -43,7 +43,7 @@ describe('Migrator', () => {
   let tempFolders: string[]
 
   beforeEach(async () => {
-    client = createClient(createTestingPostgres())
+    client = createClient(...createTestingClientArgs())
     tempFolders = []
 
     await client.raw`DROP TABLE IF EXISTS typed_pg_migrations`

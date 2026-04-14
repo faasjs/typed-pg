@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
 const basicFixtureDir = join(fixturesDir, 'typed-pg-vitest-plugin')
 const parallelFixtureDir = join(fixturesDir, 'typed-pg-vitest-plugin-parallel')
+const rawSqlFixtureDir = join(fixturesDir, 'typed-pg-vitest-plugin-raw-sql')
 const moduleRequire = createRequire(import.meta.url)
 const vitestBin = join(dirname(moduleRequire.resolve('vitest/package.json')), 'vitest.mjs')
 
@@ -63,5 +64,11 @@ describe('TypedPgVitestPlugin integration', () => {
     } finally {
       rmSync(parallelStateDir, { force: true, recursive: true })
     }
+  }, 20_000)
+
+  it('supports raw SQL migrations without relying on SchemaBuilder.run concatenation', () => {
+    const output = runFixture(rawSqlFixtureDir, 'vitest.config.ts')
+
+    expect(output).toContain('1 passed')
   }, 20_000)
 })

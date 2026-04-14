@@ -2,9 +2,8 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 
 import { Logger } from '@faasjs/node-utils'
-import postgres, { type Sql } from 'postgres'
 
-import { createClient } from '../client'
+import { createClient, type Client } from '../client'
 import { Migrator } from '../migrator'
 
 function printUsage(logger: Logger) {
@@ -17,11 +16,11 @@ function printUsage(logger: Logger) {
 `)
 }
 
-async function closeSql(sql?: Sql) {
-  if (!sql) return
+async function closeClient(client?: Client) {
+  if (!client) return
 
   try {
-    await sql.end()
+    await client.quit()
   } catch {
     // Ignore connection shutdown failures so the original CLI result wins.
   }
@@ -81,25 +80,25 @@ export async function main(operation = process.argv[2] as string) {
     return 1
   }
 
-  let sql: Sql | undefined
+  let client: Client | undefined
 
   try {
-    sql = postgres(connection)
-    await sql`SELECT 1`
+    client = createClient(connection)
+    await client.raw`SELECT 1`
     logger.info('Connected to database successfully')
   } catch (error) {
     logger.error('Error connecting to database, please check your DATABASE_URL\n', error)
-    await closeSql(sql)
+    await closeClient(client)
     return 1
   }
 
   let migrator: Migrator
 
   try {
-    migrator = new Migrator({ client: createClient(sql), folder: 'migrations' })
+    migrator = new Migrator({ client, folder: 'migrations' })
   } catch (error) {
     logger.error(error instanceof Error ? error.message : String(error))
-    await closeSql(sql)
+    await closeClient(client)
     return 1
   }
 
@@ -133,6 +132,6 @@ export async function main(operation = process.argv[2] as string) {
     if (operation === 'status') logger.error(error)
     return 1
   } finally {
-    await closeSql(sql)
+    await closeClient(client)
   }
 }

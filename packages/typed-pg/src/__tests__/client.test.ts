@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 
 import { Client, createClient } from '../client'
 import { QueryBuilder } from '../query-builder'
-import { createTestingPostgres } from './utils'
+import { createTestingClientArgs } from './utils'
 
 type MockPostgresQuery = (...args: any[]) => Promise<Array<{ ok: true }>>
 type MockPostgresFailure = (...args: any[]) => Promise<never>
@@ -11,7 +11,7 @@ describe('client', () => {
   let client: Client
 
   beforeAll(() => {
-    client = createClient(createTestingPostgres())
+    client = createClient(...createTestingClientArgs())
   })
 
   afterAll(async () => {
@@ -96,7 +96,7 @@ describe('client', () => {
   })
 
   it('quit', async () => {
-    const localClient = createClient(createTestingPostgres())
+    const localClient = createClient(...createTestingClientArgs())
 
     await expect(localClient.quit()).resolves.toBeUndefined()
   })

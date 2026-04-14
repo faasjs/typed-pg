@@ -1,6 +1,8 @@
+import type postgres from 'postgres'
 import { describe, it, expectTypeOf } from 'vitest'
 
 import type { User } from '../../test-utils/tables'
+import { createClient, type Client } from '../client'
 import type { ColumnName, ColumnValue, TableName, Tables, TableType } from '../types'
 
 describe('types', () => {
@@ -34,5 +36,16 @@ describe('types', () => {
     }>()
     expectTypeOf<ColumnValue<'query'>>().toEqualTypeOf<any>()
     expectTypeOf<ColumnValue>().toEqualTypeOf<any>()
+  })
+
+  it('createClient', () => {
+    type CreateClientFromUrl = (
+      url: string,
+      options?: postgres.Options<Record<string, never>>,
+    ) => Client
+
+    const createClientFromUrl: CreateClientFromUrl = createClient
+
+    expectTypeOf(createClientFromUrl).toEqualTypeOf<CreateClientFromUrl>()
   })
 })

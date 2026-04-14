@@ -2,17 +2,23 @@
 
 # Function: createClient()
 
-> **createClient**(`sql`): [`Client`](../classes/Client.md)
+> **createClient**(`url`, `options?`): [`Client`](../classes/Client.md)
 
-Creates a new instance of the `Client` class using the provided SQL configuration.
+Creates a new instance of the `Client` class from a PostgreSQL connection string.
 
 ## Parameters
 
-### sql
+### url
 
-`Sql`
+`string`
 
-The SQL configuration object used to initialize the client.
+The PostgreSQL connection string.
+
+### options?
+
+`postgres.Options<Record<string, never>>`
+
+Optional `postgres.js` options when `url` is provided.
 
 ## Returns
 
@@ -24,9 +30,6 @@ A new `Client` instance.
 
 ```ts
 import { createClient } from 'typed-pg'
-import postgres from 'postgres'
 
-const sql = postgres('postgres://user:pass@localhost:5432/db')
-
-const client = createClient(sql)
+const client = createClient('postgres://user:pass@localhost:5432/db')
 ```

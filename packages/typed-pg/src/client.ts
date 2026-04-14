@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { type Level, Logger } from '@faasjs/node-utils'
-import type { Sql } from 'postgres'
+import postgres, { type PostgresType, type Sql } from 'postgres'
 
 import { QueryBuilder } from './query-builder'
 import type { TableName } from './types'
@@ -119,21 +119,22 @@ export class Client {
 }
 
 /**
- * Creates a new instance of the `Client` class using the provided SQL configuration.
+ * Creates a new instance of the `Client` class from a PostgreSQL connection string.
  *
- * @param sql - The SQL configuration object used to initialize the client.
+ * @param url - The PostgreSQL connection string.
+ * @param options - Optional `postgres.js` options.
  * @returns A new `Client` instance.
  *
  * @example
  * ```ts
  * import { createClient } from 'typed-pg'
- * import postgres from 'postgres'
  *
- * const sql = postgres('postgres://user:pass@localhost:5432/db')
- *
- * const client = createClient(sql)
+ * const client = createClient('postgres://user:pass@localhost:5432/db')
  * ```
  */
-export function createClient(sql: Sql): Client {
-  return new Client(sql)
+export function createClient<T extends Record<string, PostgresType> = Record<string, never>>(
+  url: string,
+  options?: postgres.Options<T>,
+): Client {
+  return new Client(postgres<T>(url, options))
 }

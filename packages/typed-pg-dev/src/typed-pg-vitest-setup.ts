@@ -1,25 +1,12 @@
-import { beforeEach, inject } from 'vitest'
+import { beforeEach, inject, vi } from 'vitest'
 
-import {
-  TYPED_PG_VITEST_DATABASE_URL_ENV_NAME,
-  TYPED_PG_VITEST_DATABASE_URLS_KEY,
-  TYPED_PG_VITEST_RESET_EXCLUDE_TABLES,
-  requireTypedPgVitestDatabaseUrl,
-} from './plugin-context'
-import { createTestingPostgres } from './postgres'
-import { resetTestingDatabase } from './testing'
+import { closeTrackedTypedPgClients, installTypedPgClientTracking } from './client-tracking'
+import { setupTypedPgVitest } from './setup-helper'
 
-const databaseUrls = inject(TYPED_PG_VITEST_DATABASE_URLS_KEY)
-const databaseUrl = requireTypedPgVitestDatabaseUrl(databaseUrls)
-
-process.env[TYPED_PG_VITEST_DATABASE_URL_ENV_NAME] = databaseUrl
-
-beforeEach(async () => {
-  const sql = createTestingPostgres(databaseUrl)
-
-  try {
-    await resetTestingDatabase(sql, TYPED_PG_VITEST_RESET_EXCLUDE_TABLES)
-  } finally {
-    await sql.end()
-  }
-})
+installTypedPgClientTracking(vi)
+setupTypedPgVitest(
+  { beforeEach, inject },
+  {
+    beforeReset: closeTrackedTypedPgClients,
+  },
+)

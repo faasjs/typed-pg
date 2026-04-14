@@ -33,7 +33,6 @@ export default defineConfig({
 ```
 
 ```ts
-import postgres from 'postgres'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createClient } from 'typed-pg'
 
@@ -42,7 +41,7 @@ const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) throw new Error('DATABASE_URL is required')
 
 describe('users query', () => {
-  const client = createClient(postgres(databaseUrl))
+  const client = createClient(databaseUrl, { max: 1, ssl: false })
 
   afterAll(async () => {
     await client.quit()

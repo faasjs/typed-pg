@@ -69,14 +69,13 @@ export default defineConfig({
 ```
 
 ```ts
-import postgres from 'postgres'
 import { createClient } from 'typed-pg'
 
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) throw new Error('DATABASE_URL is required')
 
-const client = createClient(postgres(databaseUrl))
+const client = createClient(databaseUrl, { max: 1, ssl: false })
 ```
 
 `TypedPgVitestPlugin()` automatically:
