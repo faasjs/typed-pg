@@ -100,7 +100,7 @@ describe('typed-pg-vitest global setup', () => {
       .mockResolvedValueOnce(workerOneServer)
       .mockResolvedValueOnce(workerTwoServer)
 
-    const { setup } = await import('../typed-pg-vitest-global-setup')
+    const { default: setup } = await import('../typed-pg-vitest-global-setup')
     const teardown = await setup(project as never)
 
     expect(mocks.createClient).toHaveBeenNthCalledWith(1, workerOneServer.databaseUrl, {
@@ -146,7 +146,7 @@ describe('typed-pg-vitest global setup', () => {
 
     mocks.startPGliteServer.mockResolvedValueOnce(workerServer)
 
-    const { setup } = await import('../typed-pg-vitest-global-setup')
+    const { default: setup } = await import('../typed-pg-vitest-global-setup')
     const teardown = await setup(project as never)
 
     expect(mocks.createClient).not.toHaveBeenCalled()
@@ -175,7 +175,7 @@ describe('typed-pg-vitest global setup', () => {
     mocks.startPGliteServer.mockResolvedValueOnce(workerServer)
     mocks.migratorMigrate.mockRejectedValueOnce(Error('migrate failed'))
 
-    const { setup } = await import('../typed-pg-vitest-global-setup')
+    const { default: setup } = await import('../typed-pg-vitest-global-setup')
 
     await expect(setup(project as never)).rejects.toThrowError('migrate failed')
 
@@ -200,7 +200,7 @@ describe('typed-pg-vitest global setup', () => {
       .mockResolvedValueOnce(workerOneServer)
       .mockRejectedValueOnce(Error('start failed'))
 
-    const { setup } = await import('../typed-pg-vitest-global-setup')
+    const { default: setup } = await import('../typed-pg-vitest-global-setup')
 
     await expect(setup(project as never)).rejects.toThrowError('start failed')
 

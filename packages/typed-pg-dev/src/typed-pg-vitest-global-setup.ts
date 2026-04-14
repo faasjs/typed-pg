@@ -90,7 +90,7 @@ async function stopTestingServers(testingServers: StartedPGliteServer[]) {
  * @param {TestProject} project - Active Vitest project.
  * @returns Teardown function that stops the temporary database servers.
  */
-export async function setup(project: TestProject) {
+async function setup(project: TestProject) {
   const workerCount = resolveVitestWorkerCount(project)
   const testingServers: StartedPGliteServer[] = []
   const databaseUrls: TypedPgVitestDatabaseUrls = {}
