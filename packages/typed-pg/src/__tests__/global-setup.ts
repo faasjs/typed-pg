@@ -1,18 +1,36 @@
-import { startPGliteServer } from '../../../typed-pg-dev/src/pglite'
+import type { TestProject } from 'vitest/node'
 
-const DATABASE_URL_ENV_NAME = 'DATABASE_URL'
+import { startPGliteServer, type StartedPGliteServer } from '../../../typed-pg-dev/src/pglite'
+import {
+  TYPED_PG_VITEST_DATABASE_URLS_KEY,
+  type TypedPgVitestDatabaseUrls,
+} from '../../../typed-pg-dev/src/plugin-context'
+import { resolveVitestWorkerCount } from '../../../typed-pg-dev/src/vitest-worker-count'
 
-export default async function globalSetup() {
-  const previousDatabaseUrl = process.env[DATABASE_URL_ENV_NAME]
-  const testingServer = await startPGliteServer()
+async function stopTestingServers(testingServers: StartedPGliteServer[]) {
+  await Promise.allSettled(testingServers.map((testingServer) => testingServer.stop()))
+}
 
-  process.env[DATABASE_URL_ENV_NAME] = testingServer.databaseUrl
+export default async function globalSetup(project: TestProject) {
+  const workerCount = resolveVitestWorkerCount(project)
+  const testingServers: StartedPGliteServer[] = []
+  const databaseUrls: TypedPgVitestDatabaseUrls = {}
+
+  try {
+    for (let workerId = 1; workerId <= workerCount; workerId += 1) {
+      const testingServer = await startPGliteServer()
+
+      testingServers.push(testingServer)
+      databaseUrls[String(workerId)] = testingServer.databaseUrl
+    }
+  } catch (error) {
+    await stopTestingServers(testingServers)
+    throw error
+  }
+
+  project.provide(TYPED_PG_VITEST_DATABASE_URLS_KEY, databaseUrls)
 
   return async () => {
-    if (typeof previousDatabaseUrl === 'string')
-      process.env[DATABASE_URL_ENV_NAME] = previousDatabaseUrl
-    else delete process.env[DATABASE_URL_ENV_NAME]
-
-    await testingServer.stop()
+    await stopTestingServers(testingServers)
   }
 }

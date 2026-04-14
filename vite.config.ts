@@ -99,7 +99,7 @@ export default defineConfig({
       'typed-pg': join(process.cwd(), 'packages', 'typed-pg', 'src', 'index.ts'),
     },
     globalSetup: ['packages/typed-pg/src/__tests__/global-setup.ts'],
-    fileParallelism: false,
+    setupFiles: ['packages/typed-pg/src/__tests__/setup.ts'],
     restoreMocks: true,
     clearMocks: true,
     typecheck: {

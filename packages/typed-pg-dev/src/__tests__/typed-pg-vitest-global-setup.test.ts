@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   startPGliteServer: vi.fn<() => Promise<{ databaseUrl: string; stop: () => Promise<void> }>>(),
   createTestingPostgres: vi.fn<(databaseUrl: string) => { databaseUrl: string }>(),
   createClient: vi.fn<(sql: { databaseUrl: string }) => ClientLike>(),
+  resolveVitestWorkerCount: vi.fn<() => number>(),
   schemaBuilder: vi.fn<(client: ClientLike) => void>(),
   schemaRun: vi.fn<() => Promise<void>>(),
 }))
@@ -25,6 +26,10 @@ vi.mock('../pglite', () => ({
 
 vi.mock('../postgres', () => ({
   createTestingPostgres: mocks.createTestingPostgres,
+}))
+
+vi.mock('../vitest-worker-count', () => ({
+  resolveVitestWorkerCount: mocks.resolveVitestWorkerCount,
 }))
 
 vi.mock('typed-pg', () => ({
@@ -56,6 +61,7 @@ describe('typed-pg-vitest global setup', () => {
     appliedMigrationsQueue = []
 
     mocks.globSync.mockReturnValue([])
+    mocks.resolveVitestWorkerCount.mockReturnValue(1)
     mocks.createTestingPostgres.mockImplementation((databaseUrl) => ({ databaseUrl }))
     mocks.createClient.mockImplementation(() => {
       const appliedMigrations = appliedMigrationsQueue.shift() ?? []
@@ -97,6 +103,7 @@ describe('typed-pg-vitest global setup', () => {
       },
     }
 
+    mocks.resolveVitestWorkerCount.mockReturnValueOnce(2)
     mocks.globSync.mockReturnValue([firstMigrationFile, secondMigrationFile])
     mocks.startPGliteServer
       .mockResolvedValueOnce(workerOneServer)
@@ -127,7 +134,7 @@ describe('typed-pg-vitest global setup', () => {
     expect(workerTwoServer.stop).toHaveBeenCalledTimes(1)
   })
 
-  it('defaults to a single worker when maxWorkers is not configured', async () => {
+  it('uses a single worker database when the resolved worker count is one', async () => {
     const workerServer = createTestingServer('postgresql://worker-1')
     const provide = vi.fn()
     const project = {
@@ -196,6 +203,7 @@ describe('typed-pg-vitest global setup', () => {
       },
     }
 
+    mocks.resolveVitestWorkerCount.mockReturnValueOnce(2)
     mocks.startPGliteServer
       .mockResolvedValueOnce(workerOneServer)
       .mockRejectedValueOnce(Error('start failed'))

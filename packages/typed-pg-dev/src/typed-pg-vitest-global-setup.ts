@@ -12,6 +12,7 @@ import {
   type TypedPgVitestDatabaseUrls,
 } from './plugin-context'
 import { createTestingPostgres } from './postgres'
+import { resolveVitestWorkerCount } from './vitest-worker-count'
 
 interface MigrationFileModule {
   up?: (builder: SchemaBuilder) => void
@@ -94,7 +95,7 @@ async function stopTestingServers(testingServers: StartedPGliteServer[]) {
  * @returns Teardown function that stops the temporary database servers.
  */
 export async function setup(project: TestProject) {
-  const workerCount = Math.max(1, project.config.maxWorkers || 1)
+  const workerCount = resolveVitestWorkerCount(project)
   const testingServers: StartedPGliteServer[] = []
   const databaseUrls: TypedPgVitestDatabaseUrls = {}
 
