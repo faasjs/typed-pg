@@ -1,6 +1,6 @@
 {
   "name": "typed-pg-dev",
-  "version": "1.0.0-devel-1776219824110-devel-1776221336507",
+  "version": "1.0.0",
   "description": "PGlite-powered Vitest plugin for typed-pg.",
   "keywords": [
     "development",
