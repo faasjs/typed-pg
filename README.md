@@ -89,7 +89,9 @@ extra connections or custom `postgres.js` options.
 `createClient(url, options)` is a convenience wrapper around `new Client(url, options)`.
 The public `Client` constructor only accepts a connection URL and optional options.
 The `options` object only supports `postgres.js` settings. `Client` creates its
-own internal `logger` automatically.
+own internal `logger` automatically. When `options.max` is omitted, `typed-pg`
+uses `process.env.PG_POOL_MAX` for the pool size and falls back to `10`.
+An explicit `options.max` value still takes precedence.
 
 `TypedPgVitestPlugin()` automatically:
 
@@ -98,3 +100,6 @@ own internal `logger` automatically.
 - runs migrations from `./migrations`
 - injects the URL into `process.env.DATABASE_URL`
 - truncates tables before each test while keeping `typed_pg_migrations`
+
+Its PGlite socket server also reads `process.env.PG_POOL_MAX` and falls back to `10`,
+matching the default `typed-pg` client pool size.

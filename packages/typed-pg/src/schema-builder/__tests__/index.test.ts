@@ -1,11 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { SchemaBuilder } from '..'
-import { createTestingClientArgs } from '../../__tests__/utils'
+import { requireTestingDatabaseUrl } from '../../__tests__/utils'
 import { type Client, createClient } from '../../client'
 
 describe('SchemaBuilder', () => {
-  const client: Client = createClient(...createTestingClientArgs())
+  const client: Client = createClient(requireTestingDatabaseUrl())
 
   beforeEach(async () => {
     await client.raw('DROP TABLE IF EXISTS raws CASCADE')

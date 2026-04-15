@@ -40,12 +40,15 @@ function sqlMockFor(client: ClientInstance) {
 describe('createClient', () => {
   let clientModule: ClientModule
   let previousDatabaseUrl: string | undefined
+  let previousPoolMax: string | undefined
 
   beforeEach(async () => {
     postgresMock.mockReset()
     postgresMock.mockImplementation(() => createSqlMock())
     previousDatabaseUrl = process.env.DATABASE_URL
+    previousPoolMax = process.env.PG_POOL_MAX
     delete process.env.DATABASE_URL
+    delete process.env.PG_POOL_MAX
     vi.resetModules()
     clientModule = await loadClientModule()
   })
@@ -53,6 +56,10 @@ describe('createClient', () => {
   afterEach(() => {
     if (typeof previousDatabaseUrl === 'string') process.env.DATABASE_URL = previousDatabaseUrl
     else delete process.env.DATABASE_URL
+
+    if (typeof previousPoolMax === 'string') process.env.PG_POOL_MAX = previousPoolMax
+    else delete process.env.PG_POOL_MAX
+
     vi.restoreAllMocks()
   })
 
@@ -68,8 +75,32 @@ describe('createClient', () => {
   it('forwards a connection string without options to postgres', () => {
     const client = clientModule.createClient(exampleUrl)
 
-    expect(postgresMock).toHaveBeenCalledWith(exampleUrl, undefined)
+    expect(postgresMock).toHaveBeenCalledWith(exampleUrl, { max: 10 })
+    expect(client.options).toEqual({ max: 10 })
     expect(client.postgres).toBe(lastSqlMock())
+  })
+
+  it('reads the default pool size from PG_POOL_MAX', async () => {
+    process.env.PG_POOL_MAX = '23'
+    vi.resetModules()
+    clientModule = await loadClientModule()
+
+    const client = clientModule.createClient(exampleUrl, { ssl: false })
+
+    expect(postgresMock).toHaveBeenCalledWith(exampleUrl, { max: 23, ssl: false })
+    expect(client.options).toEqual({ max: 23, ssl: false })
+  })
+
+  it('lets options.max override PG_POOL_MAX', async () => {
+    process.env.PG_POOL_MAX = '23'
+    vi.resetModules()
+    clientModule = await loadClientModule()
+
+    const options = { max: 3, ssl: false }
+    const client = clientModule.createClient(exampleUrl, options)
+
+    expect(postgresMock).toHaveBeenCalledWith(exampleUrl, options)
+    expect(client.options).toBe(options)
   })
 
   it('allows Client to be constructed with the same connection-string arguments', () => {
@@ -163,10 +194,21 @@ describe('createClient', () => {
     const client = clientModule.getClient()
 
     expect(client).toBeDefined()
-    expect(postgresMock).toHaveBeenCalledWith(exampleUrl, undefined)
+    expect(postgresMock).toHaveBeenCalledWith(exampleUrl, { max: 10 })
     expect(clientModule.getClient(exampleUrl)).toBe(client)
     expect(clientModule.getClient()).toBe(client)
     expect(postgresMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws when PG_POOL_MAX is invalid', async () => {
+    process.env.PG_POOL_MAX = 'abc'
+    vi.resetModules()
+    clientModule = await loadClientModule()
+
+    expect(() => clientModule.createClient(exampleUrl)).toThrowError(
+      'PG_POOL_MAX must be a positive integer',
+    )
+    expect(postgresMock).not.toHaveBeenCalled()
   })
 
   it('throws when no cached client exists and DATABASE_URL is missing', () => {

@@ -4,16 +4,21 @@ import { describe, expect, it } from 'vitest'
 import { startPGliteServer } from '../pglite'
 
 describe('pglite helpers', () => {
-  it('starts a pglite socket server with a working postgres url', async () => {
+  it('starts a pglite socket server with a working postgres url for default postgres.js clients', async () => {
     const testingServer = await startPGliteServer()
-    const sql = postgres(testingServer.databaseUrl, { max: 1, ssl: false })
+    const firstSql = postgres(testingServer.databaseUrl)
+    const secondSql = postgres(testingServer.databaseUrl)
 
     try {
-      const [row] = await sql<{ value: number }[]>`select 1 as value`
+      const [[firstRow], [secondRow]] = await Promise.all([
+        firstSql<{ value: number }[]>`select 1 as value`,
+        secondSql<{ value: number }[]>`select 2 as value`,
+      ])
 
-      expect(row?.value).toBe(1)
+      expect(firstRow?.value).toBe(1)
+      expect(secondRow?.value).toBe(2)
     } finally {
-      await sql.end()
+      await Promise.allSettled([firstSql.end(), secondSql.end()])
       await testingServer.stop()
     }
   })

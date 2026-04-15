@@ -15,6 +15,26 @@ const DEFAULT_DATABASE_NAME = 'template1'
 const DEFAULT_DATABASE_PASSWORD = 'postgres'
 const DEFAULT_DATABASE_USERNAME = 'postgres'
 const DEFAULT_HOST = '127.0.0.1'
+const DEFAULT_MAX_CONNECTIONS = 10
+const PG_POOL_MAX_ENV_NAME = 'PG_POOL_MAX'
+
+function resolveMaxConnections() {
+  const configuredPoolMax = process.env[PG_POOL_MAX_ENV_NAME]?.trim()
+
+  if (!configuredPoolMax) return DEFAULT_MAX_CONNECTIONS
+
+  if (!/^[1-9]\d*$/.test(configuredPoolMax)) {
+    throw new Error(`${PG_POOL_MAX_ENV_NAME} must be a positive integer`)
+  }
+
+  const poolMax = Number(configuredPoolMax)
+
+  if (!Number.isSafeInteger(poolMax)) {
+    throw new Error(`${PG_POOL_MAX_ENV_NAME} must be a positive integer`)
+  }
+
+  return poolMax
+}
 
 function createPGliteDatabaseUrl(serverConn: string) {
   const separatorIndex = serverConn.lastIndexOf(':')
@@ -43,10 +63,13 @@ function createPGliteDatabaseUrl(serverConn: string) {
  * @returns Started server handle with a `stop()` method.
  */
 export async function startPGliteServer(): Promise<StartedPGliteServer> {
+  const maxConnections = resolveMaxConnections()
   const db = await PGlite.create(`memory://${randomUUID()}`)
   const server = new PGLiteSocketServer({
     db,
     host: DEFAULT_HOST,
+    // Match the typed-pg client pool size so tests exercise the same client shape as apps.
+    maxConnections,
     port: 0,
   })
 

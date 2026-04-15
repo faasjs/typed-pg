@@ -14,11 +14,11 @@ import { join } from 'node:path'
 import { Logger } from '@faasjs/node-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createTestingClientArgs } from '../../__tests__/utils'
+import { requireTestingDatabaseUrl } from '../../__tests__/utils'
 import { createClient, type Client } from '../../client'
 import { main } from '../main'
 
-const testingDatabaseUrl = createTestingClientArgs()[0]
+const testingDatabaseUrl = requireTestingDatabaseUrl()
 const originalArgv = [...process.argv]
 const originalCwd = process.cwd()
 const originalDatabaseUrl = process.env.DATABASE_URL
@@ -42,7 +42,7 @@ function captureLogger() {
 }
 
 async function withTestingClient<T>(fn: (client: Client) => Promise<T>) {
-  const client = createClient(...createTestingClientArgs(testingDatabaseUrl))
+  const client = createClient(requireTestingDatabaseUrl(testingDatabaseUrl))
   client.logger.level = 'info'
 
   try {

@@ -13,7 +13,36 @@ export type ClientOptions<T extends Record<string, PostgresType> = Record<string
 type PostgresTypes = Record<string, PostgresType>
 type AnyClientOptions = ClientOptions<PostgresTypes>
 
+const DEFAULT_POOL_MAX = 10
+const PG_POOL_MAX_ENV_NAME = 'PG_POOL_MAX'
 const clients = new Map<string, Client>()
+
+function resolvePoolMax() {
+  const configuredPoolMax = process.env[PG_POOL_MAX_ENV_NAME]?.trim()
+
+  if (!configuredPoolMax) return DEFAULT_POOL_MAX
+
+  if (!/^[1-9]\d*$/.test(configuredPoolMax)) {
+    throw new Error(`${PG_POOL_MAX_ENV_NAME} must be a positive integer`)
+  }
+
+  const poolMax = Number(configuredPoolMax)
+
+  if (!Number.isSafeInteger(poolMax)) {
+    throw new Error(`${PG_POOL_MAX_ENV_NAME} must be a positive integer`)
+  }
+
+  return poolMax
+}
+
+function resolveClientOptions(options?: AnyClientOptions): AnyClientOptions {
+  if (typeof options?.max === 'number') return options
+
+  return {
+    ...options,
+    max: resolvePoolMax(),
+  }
+}
 
 export class Client {
   readonly postgres: Sql
@@ -26,8 +55,10 @@ export class Client {
       throw new TypeError('Client constructor only accepts a connection URL and optional options')
     }
 
-    this.postgres = postgres(url, options)
-    this.options = options ?? {}
+    const resolvedOptions = resolveClientOptions(options)
+
+    this.postgres = postgres(url, resolvedOptions)
+    this.options = resolvedOptions
     this.logger = new Logger('typed-pg')
 
     this.url = url
@@ -143,7 +174,9 @@ export class Client {
  * Creates a new instance of the `Client` class from a PostgreSQL connection string.
  *
  * @param url - The PostgreSQL connection string.
- * @param options - Optional `postgres.js` options.
+ * @param options - Optional `postgres.js` options. When `options.max` is omitted,
+ * the default pool size is read from `process.env.PG_POOL_MAX` and falls
+ * back to `10`.
  * @returns A new `Client` instance.
  *
  * @example

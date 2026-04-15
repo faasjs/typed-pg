@@ -2,7 +2,7 @@ import { TYPED_PG_VITEST_DATABASE_URL_ENV_NAME } from '../../../typed-pg-dev/src
 
 export { createTestingPostgres } from '../../../typed-pg-dev/src/postgres'
 
-function requireTestingDatabaseUrl(databaseUrl?: string) {
+export function requireTestingDatabaseUrl(databaseUrl?: string) {
   const resolvedDatabaseUrl = databaseUrl ?? process.env[TYPED_PG_VITEST_DATABASE_URL_ENV_NAME]
 
   if (!resolvedDatabaseUrl) {
@@ -10,14 +10,4 @@ function requireTestingDatabaseUrl(databaseUrl?: string) {
   }
 
   return resolvedDatabaseUrl
-}
-
-export function createTestingClientArgs(databaseUrl?: string) {
-  return [
-    requireTestingDatabaseUrl(databaseUrl),
-    {
-      max: 1,
-      ssl: false,
-    },
-  ] as const
 }

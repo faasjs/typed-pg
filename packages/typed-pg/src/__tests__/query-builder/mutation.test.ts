@@ -2,13 +2,13 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 
 import { type Client, createClient } from '../../client'
 import { QueryBuilder } from '../../query-builder'
-import { createTestingClientArgs } from '../utils'
+import { requireTestingDatabaseUrl } from '../utils'
 
 describe('QueryBuilder/mutation', () => {
   let client: Client
 
   beforeAll(async () => {
-    client = createClient(...createTestingClientArgs())
+    client = createClient(requireTestingDatabaseUrl())
 
     await client.raw`
       CREATE TABLE mutation (

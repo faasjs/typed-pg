@@ -3,13 +3,13 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from '../client'
 import { createClient } from '../client'
 import { QueryBuilder } from '../query-builder'
-import { createTestingClientArgs } from './utils'
+import { requireTestingDatabaseUrl } from './utils'
 
 describe('client', () => {
   let client: Client
 
   beforeAll(() => {
-    client = createClient(...createTestingClientArgs())
+    client = createClient(requireTestingDatabaseUrl())
   })
 
   afterAll(async () => {
@@ -47,7 +47,7 @@ describe('client', () => {
   })
 
   it('quit', async () => {
-    const localClient = createClient(...createTestingClientArgs())
+    const localClient = createClient(requireTestingDatabaseUrl())
 
     await expect(localClient.quit()).resolves.toBeUndefined()
   })
