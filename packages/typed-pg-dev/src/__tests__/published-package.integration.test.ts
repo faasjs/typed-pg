@@ -10,16 +10,20 @@ const testDir = dirname(fileURLToPath(import.meta.url))
 const packageRoot = resolve(testDir, '..', '..')
 const workspaceRoot = resolve(packageRoot, '..', '..')
 const tmpRoot = join(workspaceRoot, 'tmp')
+const npmCacheDir = join(tmpRoot, '.npm-cache')
 const moduleRequire = createRequire(import.meta.url)
 const vitestBin = join(dirname(moduleRequire.resolve('vitest/package.json')), 'vitest.mjs')
 
 function run(command: string, args: string[], cwd: string) {
+  mkdirSync(npmCacheDir, { recursive: true })
+
   return execFileSync(command, args, {
     cwd,
     encoding: 'utf8',
     env: {
       ...process.env,
       FORCE_COLOR: '0',
+      NPM_CONFIG_CACHE: npmCacheDir,
     },
   })
 }

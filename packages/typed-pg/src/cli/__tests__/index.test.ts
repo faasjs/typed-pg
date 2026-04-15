@@ -1,23 +1,33 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Logger } from '@faasjs/node-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+function noopLoggerMethod(this: Logger) {
+  return this
+}
 
 describe('cli/index', () => {
+  const originalArgv = [...process.argv]
+  const originalExitCode = process.exitCode
+
   beforeEach(() => {
     vi.resetModules()
+    process.argv = ['node', 'typed-pg', 'unknown']
+    process.exitCode = undefined
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(noopLoggerMethod)
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
   })
 
-  it('invokes main and exposes the returned exit code via process.exitCode', async () => {
-    const main = vi.fn<() => Promise<number>>(async () => 1)
-    vi.doMock('../main', () => ({ main }))
+  afterEach(() => {
+    process.argv = [...originalArgv]
+    process.exitCode = originalExitCode
+    vi.restoreAllMocks()
+  })
 
-    const previousExitCode = process.exitCode
-    process.exitCode = undefined
-
+  it('invokes the real main module and exposes the returned exit code via process.exitCode', async () => {
     await import('../index')
     await Promise.resolve()
 
-    expect(main).toHaveBeenCalledTimes(1)
     expect(process.exitCode).toBe(1)
-
-    process.exitCode = previousExitCode
+    expect(console.error).not.toHaveBeenCalled()
   })
 })

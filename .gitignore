@@ -6,3 +6,4 @@ coverage
 .vite-hooks/_
 tmp
 .npmrc
+*,tgz

@@ -1,9 +1,8 @@
 /**
  * typed-pg-dev package.
  *
- * The published surface only exposes `TypedPgVitestPlugin`, which boots a temporary PostgreSQL
- * database for Vitest and wires `process.env.DATABASE_URL` automatically.
+ * The published surface exposes `TypedPgVitestPlugin` plus the low-level setup helper used by the
+ * generated Vitest setup module.
  */
 export { TypedPgVitestPlugin } from './plugin'
-export { closeTrackedTypedPgClients, installTypedPgClientTracking } from './client-tracking'
-export { setupTypedPgVitest, type TypedPgVitestSetupOptions } from './setup-helper'
+export { setupTypedPgVitest } from './setup-helper'

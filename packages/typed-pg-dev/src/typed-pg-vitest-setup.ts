@@ -1,12 +1,5 @@
-import { beforeEach, inject, vi } from 'vitest'
+import { beforeEach, inject } from 'vitest'
 
-import { closeTrackedTypedPgClients, installTypedPgClientTracking } from './client-tracking'
 import { setupTypedPgVitest } from './setup-helper'
 
-installTypedPgClientTracking(vi)
-setupTypedPgVitest(
-  { beforeEach, inject },
-  {
-    beforeReset: closeTrackedTypedPgClients,
-  },
-)
+setupTypedPgVitest({ beforeEach, inject })

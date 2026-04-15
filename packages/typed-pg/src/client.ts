@@ -1,37 +1,37 @@
 import { randomUUID } from 'node:crypto'
 
-import { type Level, Logger } from '@faasjs/node-utils'
+import { Logger } from '@faasjs/node-utils'
 import postgres, { type PostgresType, type Sql } from 'postgres'
 
 import { QueryBuilder } from './query-builder'
 import type { TableName } from './types'
 import { createTemplateStringsArray } from './utils'
 
-export type ClientOptions = {
-  logger?:
-    | false
-    | {
-        label?: string
-        level?: Level
-      }
-}
+export type ClientOptions<T extends Record<string, PostgresType> = Record<string, never>> =
+  postgres.Options<T>
+
+type PostgresTypes = Record<string, PostgresType>
+type AnyClientOptions = ClientOptions<PostgresTypes>
+
+const clients = new Map<string, Client>()
 
 export class Client {
   readonly postgres: Sql
-  readonly options: ClientOptions
-  readonly logger?: Logger
+  readonly options: AnyClientOptions
+  readonly logger: Logger
+  private url: string
 
-  constructor(
-    private sql: Sql,
-    options: ClientOptions = {},
-  ) {
-    this.postgres = sql
-    this.options = options
-    if (options.logger !== false) {
-      this.logger = new Logger(options.logger?.label || 'typed-pg')
-
-      if (options.logger?.level) this.logger.level = options.logger.level
+  constructor(url: string, options?: AnyClientOptions) {
+    if (typeof url !== 'string') {
+      throw new TypeError('Client constructor only accepts a connection URL and optional options')
     }
+
+    this.postgres = postgres(url, options)
+    this.options = options ?? {}
+    this.logger = new Logger('typed-pg')
+
+    this.url = url
+    clients.set(url, this)
   }
 
   /**
@@ -66,7 +66,23 @@ export class Client {
    */
   async transaction<T>(fn: (client: Client) => Promise<T>) {
     return this.postgres.begin(async (sql) => {
-      const client = new Client(sql as any)
+      const client = Object.create(Client.prototype)
+
+      Object.defineProperties(client, {
+        postgres: {
+          value: sql,
+          enumerable: true,
+        },
+        options: {
+          value: this.options,
+          enumerable: true,
+        },
+        logger: {
+          value: this.logger,
+          enumerable: true,
+        },
+      })
+
       return fn(client)
     })
   }
@@ -97,8 +113,7 @@ export class Client {
   ): Promise<T[]> {
     const templateStringsArray = createTemplateStringsArray(query)
 
-    if (!this.logger || this.logger.level !== 'debug')
-      return this.postgres<T[]>(templateStringsArray, ...params)
+    if (this.logger.level !== 'debug') return this.postgres<T[]>(templateStringsArray, ...params)
 
     const id = randomUUID()
     this.logger.time(id)
@@ -114,7 +129,13 @@ export class Client {
   }
 
   async quit() {
-    return this.postgres.end()
+    try {
+      await this.postgres.end()
+    } finally {
+      if (clients.get(this.url) === this) {
+        clients.delete(this.url)
+      }
+    }
   }
 }
 
@@ -134,7 +155,27 @@ export class Client {
  */
 export function createClient<T extends Record<string, PostgresType> = Record<string, never>>(
   url: string,
-  options?: postgres.Options<T>,
+  options?: ClientOptions<T>,
 ): Client {
-  return new Client(postgres<T>(url, options))
+  return new Client(url, options)
+}
+
+/**
+ * Returns a cached client created by {@link createClient}.
+ *
+ * When `url` is omitted and the cache contains exactly one client, that client
+ * is returned.
+ */
+export function getClient(url?: string): Client | undefined {
+  if (url) return clients.get(url)
+  if (clients.size !== 1) return undefined
+
+  return clients.values().next().value
+}
+
+/**
+ * Returns all cached clients created by {@link createClient}.
+ */
+export function getClients(): Client[] {
+  return [...clients.values()]
 }

@@ -1,11 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 
-import { Client, createClient } from '../client'
+import type { Client } from '../client'
+import { createClient } from '../client'
 import { QueryBuilder } from '../query-builder'
 import { createTestingClientArgs } from './utils'
-
-type MockPostgresQuery = (...args: any[]) => Promise<Array<{ ok: true }>>
-type MockPostgresFailure = (...args: any[]) => Promise<never>
 
 describe('client', () => {
   let client: Client
@@ -41,53 +39,6 @@ describe('client', () => {
 
     it('template with type cast', async () => {
       expect(await client.raw`SELECT ${1}::integer+${1}::integer`).toEqual([{ '?column?': 2 }])
-    })
-  })
-
-  describe('logger', () => {
-    it('skips debug logging when logger is disabled', async () => {
-      const postgres = vi.fn<MockPostgresQuery>(async () => [{ ok: true }]) as any
-      const localClient = new Client(postgres, { logger: false })
-
-      expect(await localClient.raw('SELECT 1')).toEqual([{ ok: true }])
-      expect(localClient.logger).toBeUndefined()
-      expect(postgres).toHaveBeenCalledTimes(1)
-    })
-
-    it('records timing in debug mode', async () => {
-      const postgres = vi.fn<MockPostgresQuery>(async () => [{ ok: true }]) as any
-      const localClient = new Client(postgres, {
-        logger: {
-          label: 'typed-pg-test',
-          level: 'debug',
-        },
-      })
-
-      const timeSpy = vi.spyOn(localClient.logger!, 'time')
-      const timeEndSpy = vi.spyOn(localClient.logger!, 'timeEnd')
-
-      expect(await localClient.raw('SELECT ?::integer', 1)).toEqual([{ ok: true }])
-      expect(timeSpy).toHaveBeenCalledTimes(1)
-      expect(timeEndSpy).toHaveBeenCalledTimes(1)
-    })
-
-    it('logs and rethrows query errors in debug mode', async () => {
-      const postgres = vi.fn<MockPostgresFailure>(async () => {
-        throw new Error('raw failed')
-      }) as any
-      const localClient = new Client(postgres, {
-        logger: {
-          label: 'typed-pg-test',
-          level: 'debug',
-        },
-      })
-
-      const timeEndSpy = vi.spyOn(localClient.logger!, 'timeEnd')
-      const errorSpy = vi.spyOn(localClient.logger!, 'error')
-
-      await expect(localClient.raw('SELECT 1')).rejects.toThrowError('raw failed')
-      expect(timeEndSpy).toHaveBeenCalledTimes(1)
-      expect(errorSpy).toHaveBeenCalledTimes(1)
     })
   })
 

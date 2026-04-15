@@ -66,7 +66,7 @@ describe('TypedPgVitestPlugin integration', () => {
     }
   }, 20_000)
 
-  it('supports raw SQL migrations without relying on SchemaBuilder.run concatenation', () => {
+  it('supports raw SQL migrations through SchemaBuilder.run', () => {
     const output = runFixture(rawSqlFixtureDir, 'vitest.config.ts')
 
     expect(output).toContain('1 passed')

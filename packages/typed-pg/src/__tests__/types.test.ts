@@ -2,7 +2,7 @@ import type postgres from 'postgres'
 import { describe, it, expectTypeOf } from 'vitest'
 
 import type { User } from '../../test-utils/tables'
-import { createClient, type Client } from '../client'
+import { Client, createClient, getClient, getClients, type ClientOptions } from '../client'
 import type { ColumnName, ColumnValue, TableName, Tables, TableType } from '../types'
 
 describe('types', () => {
@@ -41,11 +41,49 @@ describe('types', () => {
   it('createClient', () => {
     type CreateClientFromUrl = (
       url: string,
-      options?: postgres.Options<Record<string, never>>,
+      options?: ClientOptions<Record<string, never>>,
     ) => Client
 
     const createClientFromUrl: CreateClientFromUrl = createClient
 
     expectTypeOf(createClientFromUrl).toEqualTypeOf<CreateClientFromUrl>()
+  })
+
+  it('Client constructor', () => {
+    type ClientConstructor = new (
+      url: string,
+      options?: ClientOptions<Record<string, never>>,
+    ) => Client
+
+    const TypedClient: ClientConstructor = Client
+
+    expectTypeOf(TypedClient).toEqualTypeOf<ClientConstructor>()
+  })
+
+  it('ClientOptions', () => {
+    expectTypeOf<ClientOptions<Record<string, never>>>().toEqualTypeOf<
+      postgres.Options<Record<string, never>>
+    >()
+
+    // @ts-expect-error logger is created internally
+    const options: ClientOptions<Record<string, never>> = { logger: false }
+
+    expectTypeOf(options).toEqualTypeOf<ClientOptions<Record<string, never>>>()
+  })
+
+  it('getClient', () => {
+    type GetClient = (url?: string) => Client | undefined
+
+    const getCachedClient: GetClient = getClient
+
+    expectTypeOf(getCachedClient).toEqualTypeOf<GetClient>()
+  })
+
+  it('getClients', () => {
+    type GetClients = () => Client[]
+
+    const getCachedClients: GetClients = getClients
+
+    expectTypeOf(getCachedClients).toEqualTypeOf<GetClients>()
   })
 })

@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { viteConfig } from '@faasjs/dev'
 import { defineConfig, type UserConfig } from 'vite-plus'
 import type { PackUserConfig } from 'vite-plus/pack'
+import { configDefaults } from 'vitest/config'
 
 const pack: PackUserConfig[] = [
   {
@@ -97,6 +98,7 @@ export default defineConfig({
   },
   pack,
   test: {
+    exclude: [...configDefaults.exclude, 'tmp/**', ...(viteConfig.test?.exclude ?? [])],
     alias: {
       'typed-pg': join(process.cwd(), 'packages', 'typed-pg', 'src', 'index.ts'),
     },

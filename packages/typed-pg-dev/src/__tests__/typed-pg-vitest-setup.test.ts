@@ -8,6 +8,9 @@ type ResetTestingDatabaseMock = (
   sql: { end: ReturnType<typeof vi.fn> },
   excludeTables: string[],
 ) => Promise<void>
+type ClientLike = {
+  quit: ReturnType<typeof vi.fn>
+}
 
 describe('typed-pg-vitest setup', () => {
   const originalDatabaseUrl = process.env.DATABASE_URL
@@ -31,12 +34,13 @@ describe('typed-pg-vitest setup', () => {
   })
 
   async function loadSetupModule(options: {
+    clients?: ClientLike[]
     databaseUrls?: Record<string, string>
     resetImplementation?: () => Promise<void>
   }) {
-    const closeTrackedTypedPgClients = vi.fn<AsyncVoidMock>(async () => undefined)
     const end = vi.fn<AsyncVoidMock>(async () => undefined)
     const sql = { end }
+    const getClients = vi.fn<() => ClientLike[]>(() => options.clients ?? [])
     const inject = vi.fn<InjectMock>(() => options.databaseUrls)
     const beforeEach = vi.fn<BeforeEachMock>((callback) => {
       registeredBeforeEach = callback
@@ -59,9 +63,8 @@ describe('typed-pg-vitest setup', () => {
     vi.doMock('../testing', () => ({
       resetTestingDatabase,
     }))
-    vi.doMock('../client-tracking', () => ({
-      closeTrackedTypedPgClients,
-      installTypedPgClientTracking: vi.fn<() => void>(),
+    vi.doMock('typed-pg', () => ({
+      getClients,
     }))
 
     const module = await import('../typed-pg-vitest-setup')
@@ -70,9 +73,9 @@ describe('typed-pg-vitest setup', () => {
       module,
       mocks: {
         beforeEach,
-        closeTrackedTypedPgClients,
         createTestingPostgres,
         end,
+        getClients,
         inject,
         resetTestingDatabase,
       },
@@ -97,10 +100,31 @@ describe('typed-pg-vitest setup', () => {
 
     await registeredBeforeEach?.()
 
-    expect(mocks.closeTrackedTypedPgClients).toHaveBeenCalledTimes(1)
+    expect(mocks.getClients).toHaveBeenCalledTimes(1)
     expect(mocks.createTestingPostgres).toHaveBeenCalledWith('postgresql://worker-2')
     expect(mocks.resetTestingDatabase).toHaveBeenCalledWith(sql, ['typed_pg_migrations'])
     expect(mocks.end).toHaveBeenCalledTimes(1)
+  })
+
+  it('closes cached typed-pg clients before resetting the database', async () => {
+    const firstClient = {
+      quit: vi.fn<AsyncVoidMock>(async () => undefined),
+    }
+    const secondClient = {
+      quit: vi.fn<AsyncVoidMock>(async () => undefined),
+    }
+
+    await loadSetupModule({
+      clients: [firstClient, secondClient],
+      databaseUrls: {
+        '1': 'postgresql://worker-1',
+      },
+    })
+
+    await registeredBeforeEach?.()
+
+    expect(firstClient.quit).toHaveBeenCalledTimes(1)
+    expect(secondClient.quit).toHaveBeenCalledTimes(1)
   })
 
   it('still closes the sql client when the reset hook fails', async () => {

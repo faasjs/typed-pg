@@ -133,10 +133,8 @@ describe('TypedPgVitestPlugin', () => {
     expect(project.config.setupFiles).toHaveLength(1)
   })
 
-  it('can generate a setup module that imports a project-local reset hook', () => {
-    const plugin = TypedPgVitestPlugin({
-      beforeReset: '@/db/client#closeDbClient',
-    })
+  it('can generate a setup module that wires the shared setup helper', () => {
+    const plugin = TypedPgVitestPlugin()
     const setupId = 'virtual:typed-pg-dev/vitest-setup-999'
     const resolvedSetupId = resolvePluginId(plugin, setupId)
 
@@ -161,10 +159,9 @@ describe('TypedPgVitestPlugin', () => {
     const generatedSetupId = project.config.setupFiles[0] as string
     const generatedSource = loadPluginModule(plugin, `\0${generatedSetupId}`)
 
-    expect(generatedSource).toContain(
-      'import { closeDbClient as __typedPgVitestBeforeReset } from "@/db/client"',
-    )
-    expect(generatedSource).toContain('await __typedPgVitestBeforeReset?.()')
+    expect(generatedSource).toContain("import { beforeEach, inject } from 'vitest'")
+    expect(generatedSource).toContain('import { setupTypedPgVitest } from')
+    expect(generatedSource).toContain('  { beforeEach, inject },')
   })
 
   it('prefers the Vitest pool id when resolving a worker id', () => {

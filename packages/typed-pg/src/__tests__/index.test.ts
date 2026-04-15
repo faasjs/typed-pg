@@ -8,6 +8,8 @@ describe('TypedPg', () => {
       'Migrator',
       'Client',
       'createClient',
+      'getClient',
+      'getClients',
       'SchemaBuilder',
       'escapeIdentifier',
       'escapeValue',

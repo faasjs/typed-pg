@@ -27,13 +27,6 @@ export interface TypedPgVitestPluginOptions {
    * Restricts the plugin to the listed Vitest environments.
    */
   environments?: string[]
-  /**
-   * Optional project-local cleanup function invoked before each database reset.
-   *
-   * Pass a module specifier or `<module>#<exportName>`. When no export name is provided, `default`
-   * is used.
-   */
-  beforeReset?: string
 }
 
 function shouldEnableForProject(
@@ -87,31 +80,12 @@ export function TypedPgVitestPlugin(options: TypedPgVitestPluginOptions = {}): P
     },
     load(id) {
       if (id === setupResolvedId) {
-        const [beforeResetModule, beforeResetExportName = 'default'] = (
-          options.beforeReset?.split('#') ?? []
-        ).filter(Boolean)
-        const beforeResetAlias = '__typedPgVitestBeforeReset'
-
         return [
-          "import { beforeEach, inject, vi } from 'vitest'",
-          `import { closeTrackedTypedPgClients, installTypedPgClientTracking, setupTypedPgVitest } from ${JSON.stringify(indexPath)}`,
-          ...(beforeResetModule
-            ? [
-                beforeResetExportName === 'default'
-                  ? `import ${beforeResetAlias} from ${JSON.stringify(beforeResetModule)}`
-                  : `import { ${beforeResetExportName} as ${beforeResetAlias} } from ${JSON.stringify(beforeResetModule)}`,
-              ]
-            : []),
+          "import { beforeEach, inject } from 'vitest'",
+          `import { setupTypedPgVitest } from ${JSON.stringify(indexPath)}`,
           '',
-          'installTypedPgClientTracking(vi)',
           'setupTypedPgVitest(',
           '  { beforeEach, inject },',
-          '  {',
-          '    beforeReset: async () => {',
-          '      await closeTrackedTypedPgClients()',
-          ...(beforeResetModule ? [`      await ${beforeResetAlias}?.()`] : []),
-          '    },',
-          '  },',
           ')',
           '',
         ].join('\n')

@@ -77,21 +77,32 @@ export default defineConfig({
     TypedPgVitestPlugin({
       projects: ['api'],
       environments: ['node'],
-      beforeReset: '@/db/client#closeDbClient',
     }),
   ],
 })
 ```
 
+Before each reset, the plugin closes cached `typed-pg` clients automatically.
+
 ```ts
-import { createClient } from 'typed-pg'
+import { createClient, getClient, getClients } from 'typed-pg'
 
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) throw new Error('DATABASE_URL is required')
 
 const client = createClient(databaseUrl, { max: 1, ssl: false })
+const cachedClient = getClient(databaseUrl)
+const cachedClients = getClients()
 ```
+
+`createClient()` stores the latest client instance in an internal cache keyed by
+connection URL. `getClient()` reads from that cache, and when there is only one
+cached client you can call `getClient()` without passing a URL. `getClients()`
+returns a snapshot of every cached client.
+The public `Client` constructor only accepts a connection URL and optional options.
+The `options` object only supports `postgres.js` settings. `Client` creates its
+own internal `logger` automatically.
 
 `TypedPgVitestPlugin()` automatically:
 

@@ -9,19 +9,9 @@ export const TYPED_PG_VITEST_DATABASE_URLS_KEY = '__typedPgVitestDatabaseUrls'
 export const TYPED_PG_VITEST_DATABASE_URL_ENV_NAME = 'DATABASE_URL'
 
 /**
- * Default migrations folder used by the Vitest plugin.
- */
-export const TYPED_PG_VITEST_MIGRATIONS_FOLDER = 'migrations'
-
-/**
- * Migration bookkeeping table created inside each temporary test database.
- */
-export const TYPED_PG_VITEST_MIGRATIONS_TABLE_NAME = 'typed_pg_migrations'
-
-/**
  * Tables preserved by the Vitest plugin while clearing test data between cases.
  */
-export const TYPED_PG_VITEST_RESET_EXCLUDE_TABLES = [TYPED_PG_VITEST_MIGRATIONS_TABLE_NAME]
+export const TYPED_PG_VITEST_RESET_EXCLUDE_TABLES = ['typed_pg_migrations']
 
 /**
  * Worker-to-URL map provided by the Vitest plugin global setup.

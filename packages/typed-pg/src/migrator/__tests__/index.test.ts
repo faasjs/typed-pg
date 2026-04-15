@@ -34,6 +34,35 @@ export function down(builder) {
 `
 }
 
+function createRawSqlMigrationContent(label: string) {
+  const parentTable = `migration_${label}_parent_${Math.random().toString(16).slice(2)}`
+  const childTable = `migration_${label}_child_${Math.random().toString(16).slice(2)}`
+
+  return {
+    childTable,
+    content: `export function up(builder) {
+  builder.raw(\`
+    CREATE TABLE IF NOT EXISTS ${parentTable} (
+      id VARCHAR PRIMARY KEY
+    )
+  \`)
+  builder.raw(\`
+    CREATE TABLE IF NOT EXISTS ${childTable} (
+      id VARCHAR PRIMARY KEY,
+      parent_id VARCHAR NOT NULL REFERENCES ${parentTable}(id)
+    )
+  \`)
+}
+
+export function down(builder) {
+  builder.raw('DROP TABLE IF EXISTS ${childTable}')
+  builder.raw('DROP TABLE IF EXISTS ${parentTable}')
+}
+`,
+    parentTable,
+  }
+}
+
 async function getMigrationNames(migrator: Migrator) {
   return (await migrator.status()).map((migration: { name: string }) => migration.name).sort()
 }
@@ -106,6 +135,29 @@ describe('Migrator', () => {
     await migrator.migrate()
 
     expect(await getMigrationNames(migrator)).toEqual(['20250101000000_once'])
+  })
+
+  it('should run raw sql migrations through SchemaBuilder.run', async () => {
+    const folder = createTempFolder(tempFolders)
+    const migration = createRawSqlMigrationContent('raw_sql')
+
+    writeMigration(folder, '20250101000000_raw_sql.ts', migration.content)
+
+    const migrator = new Migrator({ client, folder })
+
+    await migrator.migrate()
+
+    expect(await getMigrationNames(migrator)).toEqual(['20250101000000_raw_sql'])
+    expect(
+      await client.raw<{ regclass: string | null }>(
+        `SELECT to_regclass('${migration.parentTable}') AS regclass`,
+      ),
+    ).toEqual([{ regclass: migration.parentTable }])
+    expect(
+      await client.raw<{ regclass: string | null }>(
+        `SELECT to_regclass('${migration.childTable}') AS regclass`,
+      ),
+    ).toEqual([{ regclass: migration.childTable }])
   })
 
   it('should reject when migrate migration throws', async () => {

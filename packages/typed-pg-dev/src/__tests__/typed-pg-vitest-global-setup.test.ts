@@ -16,7 +16,6 @@ const mocks = vi.hoisted(() => ({
   resolveVitestWorkerCount: vi.fn<() => number>(),
   migratorConstructor: vi.fn<(options: { client: ClientLike; folder: string }) => void>(),
   migratorMigrate: vi.fn<() => Promise<void>>(),
-  schemaRun: vi.fn<() => Promise<void>>(),
 }))
 
 vi.mock('node:fs', () => ({
@@ -37,11 +36,6 @@ vi.mock('typed-pg', () => ({
     mocks.migratorConstructor(options)
     return {
       migrate: mocks.migratorMigrate,
-    }
-  },
-  SchemaBuilder: class SchemaBuilder {
-    async run() {
-      await mocks.schemaRun()
     }
   },
   createClient: mocks.createClient,
@@ -75,7 +69,6 @@ describe('typed-pg-vitest global setup', () => {
       return client
     })
     mocks.migratorMigrate.mockResolvedValue(undefined)
-    mocks.schemaRun.mockResolvedValue(undefined)
   })
 
   it('creates one temporary database per worker and tears them all down', async () => {

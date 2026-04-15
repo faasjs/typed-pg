@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { TYPED_PG_VITEST_DATABASE_URLS_KEY } from '../../../typed-pg-dev/src/plugin-context'
+
 const mocks = vi.hoisted(() => ({
   resolveVitestWorkerCount: vi.fn<() => number>(),
   startPGliteServer: vi.fn<() => Promise<{ databaseUrl: string; stop: () => Promise<void> }>>(),
@@ -14,15 +16,40 @@ vi.mock('../../../typed-pg-dev/src/vitest-worker-count', () => ({
 }))
 
 function createTestingServer(databaseUrl: string) {
+  let stopCalls = 0
+
   return {
     databaseUrl,
-    stop: vi.fn(async () => undefined),
+    get stopCalls() {
+      return stopCalls
+    },
+    async stop() {
+      stopCalls += 1
+    },
+  }
+}
+
+function createProject() {
+  const provided: Array<[string, unknown]> = []
+
+  return {
+    project: {
+      config: {},
+      provide(key: string, value: unknown) {
+        provided.push([key, value])
+      },
+      vitest: {
+        config: {},
+      },
+    },
+    provided,
   }
 }
 
 describe('typed-pg test global setup', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mocks.resolveVitestWorkerCount.mockReset()
+    mocks.startPGliteServer.mockReset()
     vi.resetModules()
     mocks.resolveVitestWorkerCount.mockReturnValue(1)
   })
@@ -30,13 +57,7 @@ describe('typed-pg test global setup', () => {
   it('creates one temporary database per resolved worker and tears them down', async () => {
     const workerOneServer = createTestingServer('postgresql://worker-1')
     const workerTwoServer = createTestingServer('postgresql://worker-2')
-    const project = {
-      config: {},
-      provide: vi.fn(),
-      vitest: {
-        config: {},
-      },
-    }
+    const { project, provided } = createProject()
 
     mocks.resolveVitestWorkerCount.mockReturnValueOnce(2)
     mocks.startPGliteServer
@@ -46,26 +67,25 @@ describe('typed-pg test global setup', () => {
     const module = await import('./global-setup')
     const teardown = await module.default(project as never)
 
-    expect(project.provide).toHaveBeenCalledWith('__typedPgVitestDatabaseUrls', {
-      '1': workerOneServer.databaseUrl,
-      '2': workerTwoServer.databaseUrl,
-    })
+    expect(provided).toEqual([
+      [
+        TYPED_PG_VITEST_DATABASE_URLS_KEY,
+        {
+          '1': workerOneServer.databaseUrl,
+          '2': workerTwoServer.databaseUrl,
+        },
+      ],
+    ])
 
     await teardown()
 
-    expect(workerOneServer.stop).toHaveBeenCalledTimes(1)
-    expect(workerTwoServer.stop).toHaveBeenCalledTimes(1)
+    expect(workerOneServer.stopCalls).toBe(1)
+    expect(workerTwoServer.stopCalls).toBe(1)
   })
 
   it('stops already started databases when a later worker fails to boot', async () => {
     const workerOneServer = createTestingServer('postgresql://worker-1')
-    const project = {
-      config: {},
-      provide: vi.fn(),
-      vitest: {
-        config: {},
-      },
-    }
+    const { project, provided } = createProject()
 
     mocks.resolveVitestWorkerCount.mockReturnValueOnce(2)
     mocks.startPGliteServer
@@ -75,7 +95,7 @@ describe('typed-pg test global setup', () => {
     const module = await import('./global-setup')
 
     await expect(module.default(project as never)).rejects.toThrowError('start failed')
-    expect(workerOneServer.stop).toHaveBeenCalledTimes(1)
-    expect(project.provide).not.toHaveBeenCalled()
+    expect(workerOneServer.stopCalls).toBe(1)
+    expect(provided).toEqual([])
   })
 })

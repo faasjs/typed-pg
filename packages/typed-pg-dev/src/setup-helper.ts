@@ -1,3 +1,5 @@
+import { getClients } from 'typed-pg'
+
 import {
   TYPED_PG_VITEST_DATABASE_URL_ENV_NAME,
   TYPED_PG_VITEST_DATABASE_URLS_KEY,
@@ -14,8 +16,8 @@ export interface TypedPgVitestSetupRuntime {
   inject: (key: typeof TYPED_PG_VITEST_DATABASE_URLS_KEY) => Record<string, string> | undefined
 }
 
-export interface TypedPgVitestSetupOptions {
-  beforeReset?: () => Awaitable<void>
+async function closeCachedTypedPgClients() {
+  await Promise.allSettled(getClients().map((client) => client.quit()))
 }
 
 /**
@@ -26,20 +28,16 @@ export interface TypedPgVitestSetupOptions {
  * `vitest` locally while reusing the shared database reset logic from `typed-pg-dev`.
  *
  * @param {TypedPgVitestSetupRuntime} runtime - Runtime hooks from the active Vitest project.
- * @param {TypedPgVitestSetupOptions} [options] - Optional hooks invoked around each reset.
  * @returns Temporary database URL for the current worker.
  */
-export function setupTypedPgVitest(
-  runtime: TypedPgVitestSetupRuntime,
-  options: TypedPgVitestSetupOptions = {},
-) {
+export function setupTypedPgVitest(runtime: TypedPgVitestSetupRuntime) {
   const databaseUrls = runtime.inject(TYPED_PG_VITEST_DATABASE_URLS_KEY)
   const databaseUrl = requireTypedPgVitestDatabaseUrl(databaseUrls)
 
   process.env[TYPED_PG_VITEST_DATABASE_URL_ENV_NAME] = databaseUrl
 
   runtime.beforeEach(async () => {
-    await options.beforeReset?.()
+    await closeCachedTypedPgClients()
 
     const sql = createTestingPostgres(databaseUrl)
 

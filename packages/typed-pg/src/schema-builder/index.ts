@@ -1,5 +1,5 @@
 import type { Client } from '../client'
-import { createTemplateStringsArray, escapeIdentifier } from '../utils'
+import { escapeIdentifier } from '../utils'
 import { TableBuilder } from './table-builder'
 
 /**
@@ -62,15 +62,19 @@ export class SchemaBuilder {
 
   async run() {
     const statements = this.toSQL()
+      .map((statement) => statement.trim())
+      .filter(Boolean)
 
     if (!statements.length) return
 
     const sql = statements.join('\n')
 
     try {
-      await this.client.postgres.begin(
-        async (trx) => await (trx as any).call(trx, createTemplateStringsArray(sql)).simple(),
-      )
+      await this.client.transaction(async (client) => {
+        for (const statement of statements) {
+          await client.raw(statement)
+        }
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       throw new Error(`${message}\n\nSQL: ${sql}`)

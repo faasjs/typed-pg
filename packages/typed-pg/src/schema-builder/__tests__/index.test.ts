@@ -8,9 +8,9 @@ describe('SchemaBuilder', () => {
   const client: Client = createClient(...createTestingClientArgs())
 
   beforeEach(async () => {
-    await client.raw('DROP TABLE IF EXISTS creators')
-    await client.raw('DROP TABLE IF EXISTS alters')
-    await client.raw('DROP TABLE IF EXISTS raws')
+    await client.raw('DROP TABLE IF EXISTS raws CASCADE')
+    await client.raw('DROP TABLE IF EXISTS alters CASCADE')
+    await client.raw('DROP TABLE IF EXISTS creators CASCADE')
   })
 
   afterAll(async () => {
@@ -213,6 +213,32 @@ describe('SchemaBuilder', () => {
     )
 
     expect(tables[0]).toMatchObject({ table_name: 'raws' })
+  })
+
+  it('runs raw statements one by one inside a transaction', async () => {
+    const builder = new SchemaBuilder(client)
+
+    builder.raw(`
+      CREATE TABLE creators (
+        id VARCHAR PRIMARY KEY
+      )
+    `)
+    builder.raw(`
+      CREATE TABLE raws (
+        id VARCHAR PRIMARY KEY,
+        creator_id VARCHAR NOT NULL REFERENCES creators(id)
+      )
+    `)
+
+    await builder.run()
+
+    const tables = await client.raw<{ table_name: string }>(
+      'SELECT table_name FROM information_schema.tables WHERE table_name IN (?, ?) ORDER BY table_name',
+      'creators',
+      'raws',
+    )
+
+    expect(tables).toEqual([{ table_name: 'creators' }, { table_name: 'raws' }])
   })
 
   it('rolls back raw failures with previous schema changes', async () => {

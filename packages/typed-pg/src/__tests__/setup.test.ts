@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { TYPED_PG_VITEST_DATABASE_URLS_KEY } from '../../../typed-pg-dev/src/plugin-context'
+
 describe('typed-pg test setup', () => {
   const originalDatabaseUrl = process.env.DATABASE_URL
   const originalPoolId = process.env.VITEST_POOL_ID
 
   beforeEach(() => {
-    vi.clearAllMocks()
     vi.resetModules()
     delete process.env.DATABASE_URL
     delete process.env.VITEST_POOL_ID
@@ -17,13 +18,20 @@ describe('typed-pg test setup', () => {
 
     if (typeof originalPoolId === 'string') process.env.VITEST_POOL_ID = originalPoolId
     else delete process.env.VITEST_POOL_ID
+
+    vi.restoreAllMocks()
   })
 
   it('sets DATABASE_URL from the current worker database mapping', async () => {
-    const inject = vi.fn(() => ({
-      '1': 'postgresql://worker-1',
-      '2': 'postgresql://worker-2',
-    }))
+    const injectCalls: string[] = []
+    const inject = (key: string) => {
+      injectCalls.push(key)
+
+      return {
+        '1': 'postgresql://worker-1',
+        '2': 'postgresql://worker-2',
+      }
+    }
 
     process.env.VITEST_POOL_ID = '2'
 
@@ -33,7 +41,7 @@ describe('typed-pg test setup', () => {
 
     await import('./setup')
 
-    expect(inject).toHaveBeenCalledWith('__typedPgVitestDatabaseUrls')
+    expect(injectCalls).toEqual([TYPED_PG_VITEST_DATABASE_URLS_KEY])
     expect(process.env.DATABASE_URL).toBe('postgresql://worker-2')
   })
 })

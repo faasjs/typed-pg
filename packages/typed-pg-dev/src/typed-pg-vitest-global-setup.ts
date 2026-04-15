@@ -1,74 +1,30 @@
 import { existsSync, globSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-import { Migrator, SchemaBuilder, createClient, type Client } from 'typed-pg'
+import { Migrator, createClient } from 'typed-pg'
 import type { TestProject } from 'vitest/node'
 
 import { startPGliteServer, type StartedPGliteServer } from './pglite'
-import {
-  TYPED_PG_VITEST_DATABASE_URLS_KEY,
-  TYPED_PG_VITEST_MIGRATIONS_FOLDER,
-  type TypedPgVitestDatabaseUrls,
-} from './plugin-context'
+import { TYPED_PG_VITEST_DATABASE_URLS_KEY, type TypedPgVitestDatabaseUrls } from './plugin-context'
 import { resolveVitestWorkerCount } from './vitest-worker-count'
-
-async function runSchemaBuilderStatements(builder: SchemaBuilder) {
-  const statements = builder
-    .toSQL()
-    .map((statement) => statement.trim())
-    .filter(Boolean)
-
-  if (!statements.length) return
-
-  const client = Reflect.get(builder as object, 'client') as Client
-
-  await client.transaction(async (db: Client) => {
-    for (const statement of statements) {
-      await db.raw(statement)
-    }
-  })
-
-  // Preserve `SchemaBuilder.run()` semantics so retries don't re-run already applied statements.
-  Reflect.set(builder as object, 'changes', [])
-}
-
-async function migrateTestingDatabase(project: TestProject, databaseUrl: string) {
-  const migrationsFolder = resolve(project.config.root, TYPED_PG_VITEST_MIGRATIONS_FOLDER)
-  if (!existsSync(migrationsFolder)) return
-  if (!globSync(join(migrationsFolder, '*.ts')).length) return
-
-  const client = createClient(databaseUrl, {
-    max: 1,
-    ssl: false,
-  })
-  const originalRun = Object.getOwnPropertyDescriptor(SchemaBuilder.prototype, 'run')?.value as
-    | ((this: SchemaBuilder) => Promise<void>)
-    | undefined
-
-  try {
-    if (!originalRun) {
-      throw Error('SchemaBuilder.run() is required for typed-pg test setup.')
-    }
-
-    SchemaBuilder.prototype.run = async function patchedRun(this: SchemaBuilder) {
-      await runSchemaBuilderStatements(this)
-    }
-
-    await new Migrator({ client, folder: migrationsFolder }).migrate()
-  } finally {
-    if (originalRun) {
-      SchemaBuilder.prototype.run = originalRun
-    }
-
-    await client.quit()
-  }
-}
 
 async function startWorkerTestingServer(project: TestProject) {
   const testingServer = await startPGliteServer()
+  const migrationsFolder = resolve(project.config.root, 'migrations')
 
   try {
-    await migrateTestingDatabase(project, testingServer.databaseUrl)
+    if (existsSync(migrationsFolder) && globSync(join(migrationsFolder, '*.ts')).length) {
+      const client = createClient(testingServer.databaseUrl, {
+        max: 1,
+        ssl: false,
+      })
+
+      try {
+        await new Migrator({ client, folder: migrationsFolder }).migrate()
+      } finally {
+        await client.quit()
+      }
+    }
   } catch (error) {
     await testingServer.stop()
     throw error
