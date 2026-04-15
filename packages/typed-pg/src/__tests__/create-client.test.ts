@@ -39,15 +39,20 @@ function sqlMockFor(client: ClientInstance) {
 
 describe('createClient', () => {
   let clientModule: ClientModule
+  let previousDatabaseUrl: string | undefined
 
   beforeEach(async () => {
     postgresMock.mockReset()
     postgresMock.mockImplementation(() => createSqlMock())
+    previousDatabaseUrl = process.env.DATABASE_URL
+    delete process.env.DATABASE_URL
     vi.resetModules()
     clientModule = await loadClientModule()
   })
 
   afterEach(() => {
+    if (typeof previousDatabaseUrl === 'string') process.env.DATABASE_URL = previousDatabaseUrl
+    else delete process.env.DATABASE_URL
     vi.restoreAllMocks()
   })
 
@@ -148,6 +153,18 @@ describe('createClient', () => {
     expect(clientModule.getClient('postgres://typed-pg.test/first')).toBe(firstClient)
     expect(clientModule.getClient('postgres://typed-pg.test/second')).toBe(secondClient)
     expect(clientModule.getClient()).toBeUndefined()
+  })
+
+  it('creates and caches a client from DATABASE_URL when the cache is empty', () => {
+    process.env.DATABASE_URL = exampleUrl
+
+    const client = clientModule.getClient()
+
+    expect(client).toBeDefined()
+    expect(postgresMock).toHaveBeenCalledWith(exampleUrl, undefined)
+    expect(clientModule.getClient(exampleUrl)).toBe(client)
+    expect(clientModule.getClient()).toBe(client)
+    expect(postgresMock).toHaveBeenCalledTimes(1)
   })
 
   it('returns all cached clients without requiring a url', () => {

@@ -84,8 +84,10 @@ const cachedClients = getClients()
 
 `createClient()` stores the latest client instance in an internal cache keyed by
 connection URL. `getClient()` reads from that cache, and when there is only one
-cached client you can call `getClient()` without passing a URL. `getClients()`
-returns a snapshot of every cached client.
+cached client you can call `getClient()` without passing a URL. If the cache is
+empty and `process.env.DATABASE_URL` is set, `getClient()` lazily creates,
+caches, and returns a client for that URL. `getClients()` returns a snapshot of
+every cached client.
 `createClient(url, options)` is a convenience wrapper around `new Client(url, options)`.
 The public `Client` constructor only accepts a connection URL and optional options.
 The `options` object only supports `postgres.js` settings. `Client` creates its

@@ -164,13 +164,15 @@ export function createClient<T extends Record<string, PostgresType> = Record<str
  * Returns a cached client created by {@link createClient}.
  *
  * When `url` is omitted and the cache contains exactly one client, that client
- * is returned.
+ * is returned. When the cache is empty and `process.env.DATABASE_URL` is set,
+ * a client is created from that URL, cached, and returned.
  */
 export function getClient(url?: string): Client | undefined {
   if (url) return clients.get(url)
-  if (clients.size !== 1) return undefined
+  if (clients.size === 1) return clients.values().next().value
+  if (clients.size !== 0) return undefined
 
-  return clients.values().next().value
+  return process.env.DATABASE_URL ? createClient(process.env.DATABASE_URL) : undefined
 }
 
 /**
