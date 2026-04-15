@@ -14,8 +14,8 @@ surface changes should come with type assertions.
 
 1. Prefer `TypedPgVitestPlugin()` so Vitest boots a temporary database, provisions one database per
    worker when file parallelism is enabled, runs migrations, and clears table contents before each test.
-2. Build clients from `process.env.DATABASE_URL` so production and test code share the same
-   connection bootstrap path.
+2. Let `TypedPgVitestPlugin()` inject `DATABASE_URL`, then use `getClient()` to seed data and run
+   assertions so production and test code share the same connection bootstrap path.
 3. Add only the suite-specific setup or fixtures that the plugin does not already provide.
 4. Pair runtime assertions with `expectTypeOf(...)` when a change affects inference.
 5. Run `npm test` for behavior changes, and `npm run build` when exports or CLI entrypoints change.
@@ -33,22 +33,23 @@ export default defineConfig({
 ```
 
 ```ts
-import { afterAll, describe, expect, it } from 'vitest'
-import { createClient } from 'typed-pg'
+import { describe, expect, it } from 'vitest'
+import { getClient } from 'typed-pg'
 
-const databaseUrl = process.env.DATABASE_URL
-
-if (!databaseUrl) throw new Error('DATABASE_URL is required')
+async function seedUser() {
+  await getClient().query('users').insert({
+    id: 1,
+    name: 'Alice',
+  })
+}
 
 describe('users query', () => {
-  const client = createClient(databaseUrl, { max: 1, ssl: false })
+  it('selects seeded rows', async () => {
+    const client = getClient()
 
-  afterAll(async () => {
-    await client.quit()
-  })
+    await seedUser()
 
-  it('selects rows', async () => {
-    expect(await client.query('users')).toEqual([])
+    await expect(client.query('users').where({ id: 1 })).resolves.toMatchObject([{ name: 'Alice' }])
   })
 })
 ```
@@ -82,7 +83,12 @@ describe('users query', () => {
 ### 5. Use `typed-pg-dev` through the Vitest plugin
 
 - Prefer `TypedPgVitestPlugin()` for workspace test runs.
-- Read the database connection string from `process.env.DATABASE_URL` in both production and tests.
+- In tests, let the plugin inject `DATABASE_URL` and use `getClient()` directly for fixture setup
+  and assertions.
+- Because `getClient()` throws when no shared client can be resolved, test examples should not add
+  redundant `undefined` guards around the plugin-managed client.
+- Reach for `createClient(process.env.DATABASE_URL, options)` only when a suite genuinely needs
+  custom `postgres.js` options or an extra connection.
 - Keep lower-level database bootstrapping internal to the repo; public examples should only show the plugin.
 
 ## Review Checklist

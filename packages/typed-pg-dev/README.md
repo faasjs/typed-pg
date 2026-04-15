@@ -39,17 +39,18 @@ export default defineConfig({
 
 Before each reset, the plugin closes cached `typed-pg` clients automatically.
 
-## Creating a client from `DATABASE_URL`
+## Using `getClient()` with `DATABASE_URL`
 
 ```ts
-import { createClient } from 'typed-pg'
+import { getClient } from 'typed-pg'
 
-const databaseUrl = process.env.DATABASE_URL
-
-if (!databaseUrl) throw new Error('DATABASE_URL is required')
-
-const client = createClient(databaseUrl, { max: 1, ssl: false })
+const client = getClient()
 ```
+
+`TypedPgVitestPlugin()` injects `process.env.DATABASE_URL`, so public examples
+should normally read the shared client with `getClient()`. Reach for
+`createClient(process.env.DATABASE_URL!, options)` only when you need custom
+`postgres.js` options or an extra connection.
 
 `TypedPgVitestPlugin()` automatically:
 

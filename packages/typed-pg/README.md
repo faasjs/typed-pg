@@ -85,21 +85,21 @@ export default defineConfig({
 Before each reset, the plugin closes cached `typed-pg` clients automatically.
 
 ```ts
-import { createClient, getClient, getClients } from 'typed-pg'
+import { getClient, getClients } from 'typed-pg'
 
-const databaseUrl = process.env.DATABASE_URL
-
-if (!databaseUrl) throw new Error('DATABASE_URL is required')
-
-const client = createClient(databaseUrl, { max: 1, ssl: false })
-const cachedClient = getClient(databaseUrl)
+const client = getClient()
 const cachedClients = getClients()
 ```
 
-`createClient()` stores the latest client instance in an internal cache keyed by
-connection URL. `getClient()` reads from that cache, and when there is only one
-cached client you can call `getClient()` without passing a URL. `getClients()`
-returns a snapshot of every cached client.
+Set `DATABASE_URL` in the environment, then use `getClient()` as the default
+entry point for a single shared database connection. When the cache is empty and
+`process.env.DATABASE_URL` is set, `getClient()` lazily creates, caches, and
+returns a client for that URL. When there is only one cached client, subsequent
+`getClient()` calls can omit the URL. When multiple cached clients exist, pass a
+connection URL explicitly. If no client can be resolved, `getClient()` throws
+instead of returning `undefined`. `getClients()` returns a snapshot of every
+cached client. Reach for `createClient(url, options)` when you need explicit
+extra connections or custom `postgres.js` options.
 The public `Client` constructor only accepts a connection URL and optional options.
 The `options` object only supports `postgres.js` settings. `Client` creates its
 own internal `logger` automatically.

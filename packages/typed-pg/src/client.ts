@@ -165,14 +165,45 @@ export function createClient<T extends Record<string, PostgresType> = Record<str
  *
  * When `url` is omitted and the cache contains exactly one client, that client
  * is returned. When the cache is empty and `process.env.DATABASE_URL` is set,
- * a client is created from that URL, cached, and returned.
+ * a client is created from that URL, cached, and returned. Throws when no
+ * client can be resolved.
+ *
+ * @throws {Error} When the requested URL is not cached.
+ * @throws {Error} When multiple cached clients exist and `url` is omitted.
+ * @throws {Error} When no cached client exists and `process.env.DATABASE_URL` is not set.
+ *
+ * @example
+ * ```ts
+ * import { getClient } from 'typed-pg'
+ *
+ * const client = getClient()
+ * const users = await client.query('users')
+ * ```
  */
-export function getClient(url?: string): Client | undefined {
-  if (url) return clients.get(url)
-  if (clients.size === 1) return clients.values().next().value
-  if (clients.size !== 0) return undefined
+export function getClient(url?: string): Client {
+  if (url) {
+    const client = clients.get(url)
 
-  return process.env.DATABASE_URL ? createClient(process.env.DATABASE_URL) : undefined
+    if (client) return client
+
+    throw new Error(`No cached client found for connection URL: ${url}`)
+  }
+
+  if (clients.size === 1) {
+    const client = clients.values().next().value
+
+    if (client) return client
+
+    throw new Error('Expected exactly one cached client')
+  }
+
+  if (clients.size !== 0) {
+    throw new Error('getClient() requires a connection URL when multiple clients are cached')
+  }
+
+  if (process.env.DATABASE_URL) return createClient(process.env.DATABASE_URL)
+
+  throw new Error('DATABASE_URL is required when no cached client is available')
 }
 
 /**

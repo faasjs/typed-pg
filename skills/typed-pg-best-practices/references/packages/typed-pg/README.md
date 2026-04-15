@@ -6,6 +6,8 @@
 - [createTemplateStringsArray](functions/createTemplateStringsArray.md)
 - [escapeIdentifier](functions/escapeIdentifier.md)
 - [escapeValue](functions/escapeValue.md)
+- [getClient](functions/getClient.md)
+- [getClients](functions/getClients.md)
 - [isTemplateStringsArray](functions/isTemplateStringsArray.md)
 - [rawSql](functions/rawSql.md)
 

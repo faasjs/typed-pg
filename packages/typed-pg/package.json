@@ -1,6 +1,6 @@
 {
   "name": "typed-pg",
-  "version": "1.0.0",
+  "version": "1.0.0-devel-1776219824110-devel-1776221336507",
   "description": "A type-safe PostgreSQL query builder for TypeScript with a fluent API.",
   "keywords": [
     "api",

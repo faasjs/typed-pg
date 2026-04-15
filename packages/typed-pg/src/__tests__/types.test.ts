@@ -72,7 +72,7 @@ describe('types', () => {
   })
 
   it('getClient', () => {
-    type GetClient = (url?: string) => Client | undefined
+    type GetClient = (url?: string) => Client
 
     const getCachedClient: GetClient = getClient
 

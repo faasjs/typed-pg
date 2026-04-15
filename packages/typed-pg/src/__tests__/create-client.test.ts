@@ -146,13 +146,15 @@ describe('createClient', () => {
     expect(clientModule.getClient()).toBe(client)
   })
 
-  it('returns undefined without a url when multiple cached clients exist', () => {
+  it('throws without a url when multiple cached clients exist', () => {
     const firstClient = clientModule.createClient('postgres://typed-pg.test/first')
     const secondClient = clientModule.createClient('postgres://typed-pg.test/second')
 
     expect(clientModule.getClient('postgres://typed-pg.test/first')).toBe(firstClient)
     expect(clientModule.getClient('postgres://typed-pg.test/second')).toBe(secondClient)
-    expect(clientModule.getClient()).toBeUndefined()
+    expect(() => clientModule.getClient()).toThrowError(
+      'getClient() requires a connection URL when multiple clients are cached',
+    )
   })
 
   it('creates and caches a client from DATABASE_URL when the cache is empty', () => {
@@ -165,6 +167,18 @@ describe('createClient', () => {
     expect(clientModule.getClient(exampleUrl)).toBe(client)
     expect(clientModule.getClient()).toBe(client)
     expect(postgresMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws when no cached client exists and DATABASE_URL is missing', () => {
+    expect(() => clientModule.getClient()).toThrowError(
+      'DATABASE_URL is required when no cached client is available',
+    )
+  })
+
+  it('throws when requesting an uncached client by url', () => {
+    expect(() => clientModule.getClient(exampleUrl)).toThrowError(
+      `No cached client found for connection URL: ${exampleUrl}`,
+    )
   })
 
   it('returns all cached clients without requiring a url', () => {
@@ -196,7 +210,9 @@ describe('createClient', () => {
 
     await expect(secondClient.quit()).resolves.toBeUndefined()
     expect(secondSql.end).toHaveBeenCalledTimes(1)
-    expect(clientModule.getClient(exampleUrl)).toBeUndefined()
+    expect(() => clientModule.getClient(exampleUrl)).toThrowError(
+      `No cached client found for connection URL: ${exampleUrl}`,
+    )
     expect(clientModule.getClients()).toEqual([])
   })
 })

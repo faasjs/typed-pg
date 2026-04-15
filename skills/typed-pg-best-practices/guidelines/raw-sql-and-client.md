@@ -12,8 +12,8 @@ parameters, and only use raw fragments deliberately.
 
 ## Default Workflow
 
-1. Resolve the connection string from `process.env.DATABASE_URL` so production and tests share one
-   bootstrap path.
+1. Set `DATABASE_URL` in the environment and prefer `getClient()` so production and tests share
+   one bootstrap path.
 2. Prefer `client.query(...)` when the fluent API already supports the query.
 3. Use `client.raw(...)` with template strings or `?` placeholders for custom SQL.
 4. Use `escapeIdentifier` or `rawSql(...)` only for trusted identifiers or SQL fragments that
@@ -23,13 +23,9 @@ parameters, and only use raw fragments deliberately.
 ## Minimal Example
 
 ```ts
-import { createClient } from 'typed-pg'
+import { getClient } from 'typed-pg'
 
-const databaseUrl = process.env.DATABASE_URL
-
-if (!databaseUrl) throw new Error('DATABASE_URL is required')
-
-const client = createClient(databaseUrl)
+const client = getClient()
 
 await client.transaction(async (trx) => {
   await trx.raw('UPDATE users SET name = ? WHERE id = ?', 'Alice', 1)
@@ -47,7 +43,11 @@ await client.transaction(async (trx) => {
 
 ### 2. Keep database bootstrap consistent across environments
 
-- Prefer one client factory that reads `process.env.DATABASE_URL`.
+- Prefer `getClient()` for the default application client so the shared bootstrap path stays tied
+  to `process.env.DATABASE_URL`.
+- Reach for `createClient(process.env.DATABASE_URL, options)` only when custom `postgres.js`
+  options or multiple database connections are required.
+- Treat `getClient()` throwing as a signal that the shared bootstrap path was not configured.
 - In tests, let `TypedPgVitestPlugin()` populate `DATABASE_URL` instead of building a separate
   testing-only connection path.
 - Keep SSL, pool, or logging tweaks explicit, but avoid branching to a completely different source
@@ -80,7 +80,7 @@ await client.transaction(async (trx) => {
 ## Review Checklist
 
 - values are parameterized
-- the client bootstrap reads `process.env.DATABASE_URL`
+- the client bootstrap goes through `getClient()` and `process.env.DATABASE_URL`
 - identifiers or SQL fragments are escaped or explicitly trusted
 - raw SQL is used only where the builder surface is insufficient
 - multi-step writes use `transaction(...)` when atomicity matters
